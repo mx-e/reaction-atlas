@@ -1,0 +1,20 @@
+# ML / Chemistry
+torch>=2.4.0,<2.5
+md-et
+schnetpack==2.1.1
+ase>=3.23.0
+rdkit>=2024.3.5
+
+# Database
+sqlalchemy>=2.0
+psycopg[binary]>=3.1
+alembic>=1.13
+
+# Utilities
+numpy
+loguru
+pyyaml
+frozendict>=2.4.6
+rmsd>=1.5.1
+pygraphviz>=1.14
+huggingface-hub>=0.20.0

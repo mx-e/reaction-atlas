@@ -1,0 +1,41 @@
+# Slim arm64 build of the CPU worker for native Apple Silicon execution.
+# DFT-only: no xtb/crest/md-et/torch, since CREST has no upstream-published
+# aarch64 binaries and the DFT path needs none of them. Set with
+# DFT_ONLY=1 (default below) so the worker skips the CREST claim entirely.
+#
+# Build (locally, do not push):
+#   docker build --platform linux/arm64 \
+#     -f packages/cpu-worker/Dockerfile.arm64 \
+#     -t cpu-worker:arm64 .
+
+FROM python:3.11-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        libgomp1 libopenblas-dev liblapack-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Pure-DFT deps. pyscf has arm64 wheels on PyPI; ase is pure Python.
+# psycopg2-binary covers the DB connector. No torch / md-et / xtb / crest.
+RUN pip install --no-cache-dir \
+        sqlalchemy psycopg2-binary loguru numpy scipy \
+        pyscf ase
+
+# Quick import smoke test
+RUN python3 -c "from pyscf import gto, dft; print('pyscf OK on', __import__('platform').machine())"
+
+WORKDIR /app
+ENV PYTHONPATH=/app
+ENV DFT_ONLY=1
+
+COPY packages/db /app/packages/db
+COPY packages/cpu-worker/worker.py /app/worker.py
+COPY packages/cpu-worker/dft_runner.py /app/dft_runner.py
+COPY packages/cpu-worker/rmsd_match.py /app/rmsd_match.py
+
+COPY packages/cpu-worker/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+CMD ["/app/entrypoint.sh"]

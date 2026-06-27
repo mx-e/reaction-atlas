@@ -1,0 +1,62 @@
+# Excludes for gcloud builds submit — keeps the source tarball small
+# (the repo has 10GB of test_data/ that nothing in any Dockerfile needs).
+
+# Always exclude
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# Test data — never used by any container build
+test_data/
+test_data/**
+
+# Frontend build artifacts (frontend image is built separately and Cloud Build
+# context for the worker doesn't need any of this anyway)
+packages/frontend/node_modules/
+packages/frontend/.next/
+packages/frontend/out/
+
+# Python caches
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/.tox/
+**/.venv/
+**/venv/
+
+# Terraform state (huge, sensitive, never needed in a build context)
+infra/terraform/.terraform/
+infra/terraform/terraform.tfstate
+infra/terraform/terraform.tfstate.*
+infra/terraform/.terraform.tfstate.lock.info
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Local data dirs
+test_results/
+results/
+*.pkl
+*.pickle
+
+# Anything reaaally big in the working tree we forgot about
+**/*.sif
+**/*.iso
+**/*.tar.gz
+**/*.tar.xz
+
+# Local dev artefacts at repo root — crn_cloud.sql alone is several GB and
+# makes every submit hang on tarball creation.
+crn_cloud.sql
+crn_cloud.dump
+cloud-sql-proxy
+investigation/
+report/
+packages/frontend/tsconfig.tsbuildinfo

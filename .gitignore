@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
+venv/
+
+# Node
+node_modules/
+.next/
+out/
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+sa-key.json
+*.pem
+*.key
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Terraform — providers and state must not be committed
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+!*.tfvars.example
+
+# Docker
+*.tar
+
+# Apptainer / Singularity images — built per-machine, large
+*.sif
+
+# SLURM job logs
+logs/
+*.log
+
+# Claude Code runtime state
+.claude/
+
+# Large dataset artifacts not redistributed in-repo
+# (the full DB dump is published separately on Zenodo; see docs/data.md)
+*.sql.gz
+final-dump-*.sql
+test_data/
+neutral_pairs_v12l/
+neutral_pairs_v12l_pass2/
+neutral_pairs_v12l_dataset/
+neutral_pairs_v12l_final/
+neutral_pairs_v12l_final.zip
+
+# Large generated reference data — committed in compressed form only
+data/reference/maygen_carb.json

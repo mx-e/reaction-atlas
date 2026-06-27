@@ -1,0 +1,226 @@
+% ============================================================================
+% Supplementary Information SI-1: PES-Loop Reaction Discovery
+%
+% Drop-in subsection fragment. Parent SI must provide: amsmath/amssymb,
+% booktabs, siunitx (with \angstrom). Bibliography handled at the parent
+% level. (Parameter reference lives in si_parameters.tex.)
+% ============================================================================
+
+\subsection{PES-Loop Reaction Discovery}
+\label{si:pes}
+
+The PES loop performs local exploration around a known minimum. It works one compound at a time, MD-samples configuration space near a chosen minimum, optimises trajectory frames to first-order saddle points by Partitioned Rational Function Optimisation (P-RFO), and validates each saddle by IRC-like descent. The endpoints of that descent fall into two cases: \emph{intramolecular} (both endpoints belong to the same compound's PES graph --- a conformer-to-conformer reaction) or \emph{escape} (one endpoint is a structurally different compound, possibly fragmented into multiple species --- a true chemical reaction). Intramolecular saddles are stored as edges in the per-compound PES graph; escapes are passed to the same multi-stage critic used by the generative loop (SI-\ref{si:generative}, Stages 4--8) and admitted to the reaction graph if they survive.
+
+The pipeline has eight stages: (1)~minimum selection, (2)~molecular dynamics, (3)~TS candidate sampling, (4)~batched P-RFO, (5)~Hessian saddle validation, (6)~bidirectional IRC, (7)~endpoint classification (intramolecular vs.\ escape), (8)~commitment. Energies, forces, and Hessians come from the ML force field; that model and the shared numerical primitives (Hessian projection, FIRE, trust-region Newton, IRC, NEB, RMSD, fragmentation, SMILES) are documented once in SI-\ref{si:shared}.
+
+
+%-----------------------------------------------------------------------------
+\subsubsection{Stage 1 --- Minimum selection}
+\label{sec:pes-select}
+%-----------------------------------------------------------------------------
+
+PES exploration is queued at the granularity of \emph{(compound, minimum)} pairs. A worker claims one minimum at a time via a per-compound advisory lock (so only one worker explores a given compound at any moment). Within a claimed compound, the lowest-energy unexplored minimum is selected:
+\begin{equation}
+    m_\text{next} = \arg\min_{m \in \mathcal{M}_\text{unexplored}(c)} E(m).
+\end{equation}
+Lower-energy conformers are more populated and host the kinetically dominant reactions, so they are explored first. Once selected, the minimum is marked in-progress; on success it is marked \emph{explored} and the worker releases the compound. Compounds whose every minimum has been explored leave the queue.
+
+
+%-----------------------------------------------------------------------------
+\subsubsection{Stage 2 --- Molecular dynamics}
+\label{sec:pes-md}
+%-----------------------------------------------------------------------------
+
+A Langevin trajectory is launched from the selected minimum to sample configuration space around it. The goal is not kinetics simulation but geometric coverage --- to visit a diverse set of geometries that lie on or near reaction pathways departing from the minimum. The integrator follows
+\begin{equation}
+    m_i \ddot{\mathbf{r}}_i = \mathbf{F}_i - \gamma m_i \dot{\mathbf{r}}_i + \sqrt{2 \gamma m_i k_B T}\, \boldsymbol{\xi}(t),
+\end{equation}
+with friction coefficient $\gamma = 1/\tau$, coupling time $\tau = \SI{100}{fs}$, and Gaussian white noise $\boldsymbol{\xi}$. Initial velocities are drawn from the Maxwell--Boltzmann distribution at the target temperature. $2500$ steps $\times \SI{0.5}{fs} = \SI{1.25}{ps}$ at \SI{300}{K}, with a snapshot saved every $10$ steps ($250$ frames).
+
+\noindent\begin{tabular}{lr}
+\toprule
+Parameter & Value \\
+\midrule
+MD steps & 2500 \\
+Integration step & \SI{0.5}{fs} \\
+Total simulation time & \SI{1.25}{ps} \\
+Temperature & \SI{300}{K} \\
+Thermostat & Langevin \\
+Coupling $\tau$ & \SI{100}{fs} \\
+Snapshot interval & 10 steps (250 frames) \\
+\bottomrule
+\end{tabular}
+
+At \SI{300}{K}, $k_B T \approx \SI{0.026}{eV}$ --- direct sampling of saddle points with barriers above $\sim \SI{0.5}{eV}$ is statistically negligible in \SI{1.25}{ps}. The MD is explicitly not asked to cross barriers; P-RFO does that downstream. The \SI{0.5}{fs} timestep is safe for the fastest vibrations (C--H stretches, period $\sim \SI{10}{fs}$); the moderately tight \SI{100}{fs} coupling prevents kinetic-energy build-up in any single mode without aggressively damping motion.
+
+
+%-----------------------------------------------------------------------------
+\subsubsection{Stage 3 --- TS candidate sampling}
+\label{sec:pes-candidates}
+%-----------------------------------------------------------------------------
+
+From the 250 MD frames, $32$ candidates are selected by uniform random sampling. P-RFO is robust to starting-point choice within the same basin --- 32 random frames cover the relevant saddles on the boundary of a low-energy basin, and subsequent deduplication absorbs redundant starting points that converge to the same saddle.
+
+
+%-----------------------------------------------------------------------------
+\subsubsection{Stage 4 --- Partitioned Rational Function Optimisation (P-RFO)}
+\label{sec:pes-prfo}
+%-----------------------------------------------------------------------------
+
+P-RFO (Banerjee et al.\ 1985; Baker 1986) walks each candidate geometry uphill along one mode and downhill in the orthogonal subspace, converging to a first-order saddle. The pipeline runs all 32 candidates in lockstep (one batched GPU Hessian + one batched energy evaluation per step via \S\ref{sec:shared-mdet}). At each step:
+
+\begin{enumerate}
+    \item Compute $E$, $\mathbf{f} = -\nabla E$, and the projected Hessian $\mathbf{H}_\text{proj}$ (eigenpairs $\{\lambda_i, \mathbf{u}_i\}$; \S\ref{sec:shared-hessian}). Project the gradient: $g_i = \mathbf{u}_i \cdot \mathbf{g}$.
+    \item Compute the RFO step in each mode,
+    \begin{equation}
+        p_i = \frac{\mu_i}{g_i}, \qquad \mu_i = \frac{\lambda_i \pm \sqrt{\lambda_i^2 + 4 g_i^2}}{2},
+    \end{equation}
+    with $+$ on the TS mode (walk uphill) and $-$ on the others (walk downhill).
+\end{enumerate}
+
+\paragraph{Mode following.}
+At step $0$ the TS mode is the lowest-eigenvalue mode. At subsequent steps it is the eigenvector with the largest overlap to the previous TS eigenvector,
+\begin{equation}
+    i_\text{TS} = \arg\max_i \left| \mathbf{u}_i \cdot \mathbf{u}_\text{TS}^{(\text{prev})} \right|.
+\end{equation}
+This prevents the optimiser from jumping between modes when eigenvalues cross.
+
+\paragraph{Partitioned trust radii.}
+Two adaptive trust radii are maintained: a TS-mode radius (initially $1.5\times$ the minimum-mode radius) and a minimisation-subspace radius. After each trial step, the trust-region ratio
+\begin{equation}
+    \rho = \frac{\Delta E_\text{actual}}{\Delta E_\text{predicted}}, \qquad \Delta E_\text{pred} = -\mathbf{f} \cdot \mathbf{p} + \tfrac{1}{2} \mathbf{p}^\top \mathbf{H} \mathbf{p}
+\end{equation}
+is computed. The step is accepted if $\rho > 0.1$ (otherwise the trust radius is halved and the step retried, up to $5$ times). After acceptance, the radius shrinks by $0.5$ if $\rho < 0.25$ or $\rho > 2$ (poor model fit), and expands by $1.5$ if $0.5 < \rho < 1.5$ and the step hit the trust boundary.
+
+\paragraph{Convergence and early stopping.}
+A candidate is declared converged when $\max_i |f_i| < \SI{0.01}{eV/\angstrom}$ \emph{and} $f_\text{RMS} < \SI{0.005}{eV/\angstrom}$ \emph{and} the projected Hessian has exactly one significant negative eigenvalue. The optimiser also detects pathological trajectories: \emph{stuck} (net displacement and total path length below $10^{-4}$~\AA{} over the last 20 steps), \emph{oscillating} (net/path ratio $< 0.1$), or \emph{bad steps} ($>20$ consecutive steps with $\rho < 0.1$ or $\rho > 2$ at minimum trust radius).
+
+\noindent\begin{tabular}{lr}
+\toprule
+Parameter & Value \\
+\midrule
+Candidates per iteration & 32 \\
+Max steps & 120 \\
+$f_\text{max}$ tolerance & \SI{0.01}{eV/\angstrom} \\
+$f_\text{RMS}$ tolerance & \SI{0.005}{eV/\angstrom} \\
+Initial trust radius & \SI{0.5}{\angstrom} \\
+Trust radius bounds & $[0.01, 0.3]$~\AA \\
+TS-mode trust scale & 1.5 \\
+Accept threshold ($\rho$) & 0.1 \\
+Max retries / step & 5 \\
+\bottomrule
+\end{tabular}
+
+The \SI{0.01}{eV/\angstrom} convergence is tight enough to be meaningful at ML force-field accuracy but loose enough to actually converge --- tighter would just chase model noise. The permissive $\rho > 0.1$ accept threshold reflects that the ML Hessian sometimes misses small higher-order terms, and a step that disagrees with the quadratic model by up to 10$\times$ may still be productive.
+
+
+%-----------------------------------------------------------------------------
+\subsubsection{Stage 5 --- Hessian saddle validation}
+\label{sec:pes-saddle-validation}
+%-----------------------------------------------------------------------------
+
+A P-RFO-converged geometry may have spurious extra negative eigenvalues from the ML model (especially in floppy directions like methyl rotations or ring puckers) or, conversely, a single negative eigenvalue too shallow to support a real reaction. The projected Hessian (\S\ref{sec:shared-hessian}) is recomputed at the converged geometry and the spectrum examined. A saddle is admitted iff:
+\begin{itemize}
+    \item \emph{exactly one} eigenvalue satisfies $\lambda < -10^{-4}\,\text{eV/\AA}^2$ (significance threshold, masking numerical noise), and
+    \item the most negative eigenvalue satisfies $\lambda_\text{TS} < \SI{-0.01}{eV/\angstrom^2}$ (the curvature is meaningfully negative, not just below numerical floor).
+\end{itemize}
+Candidates with $-0.01 < \lambda_\text{TS} < 0$ are rejected as ``eigenvalue too shallow''. The two-tier check separates two failure modes: noise pretending to be a saddle (lowest eigenvalue just below zero from numerical floor) and insufficient curvature to call a saddle (a real but very shallow negative eigenvalue). The exactly-one criterion is strict by design --- the PES loop submits only candidates its P-RFO walker drove to a clean first-order saddle, so allowing additional negative modes here would admit converged-but-pathological geometries that should be discarded rather than salvaged. (The generative loop deliberately relaxes this to ``at least one'' in \S\ref{sec:hessian-irc}, because diffusion-proposed geometries span a much broader curvature distribution and downstream IRC + barrier gates absorb the additional load.) ML Hessians for very floppy systems can fail this check on geometries that DFT would confirm as saddles; for the downstream kinetics that ultimately consume the barriers, this is mitigated by the DFT energy refinement (\S\ref{sec:kinetics-dft}).
+
+
+%-----------------------------------------------------------------------------
+\subsubsection{Stage 6 --- Bidirectional IRC}
+\label{sec:pes-irc}
+%-----------------------------------------------------------------------------
+
+The imaginary mode is followed in both directions and relaxed to a minimum on each side; the bidirectional IRC algorithm is shared with the generative loop and described in \S\ref{sec:shared-irc}. PES-loop-specific choices:
+
+\paragraph{Curvature-adaptive displacement.}
+The harmonic-approximation form targets an energy drop of $\Delta E_\text{target} = 2 \times \SI{0.04}{eV}$ (twice the endpoint validation threshold below):
+\begin{equation}
+    \Delta x = \sqrt{\frac{2|\Delta E_\text{target}|}{|\lambda_\text{TS}|}}, \qquad \text{clamped to } [\SI{0.02}{\angstrom}, \SI{0.5}{\angstrom}].
+\end{equation}
+Endpoint relaxation uses trust-region Newton (\S\ref{sec:shared-newton}) with $f_\text{max} = \SI{0.005}{eV/\angstrom}$, max $120$ steps, and an energy-increase tolerance of $\SI{0.005}{eV}$ per step. Acceptance: convergence or bail-late at $f_\text{max} < 10\times$ tolerance.
+
+\paragraph{Endpoint criteria.}
+Both endpoints must lie energetically below the TS. The standard criterion is symmetric:
+\begin{equation}
+    E_\text{left} - E_\text{TS} < \SI{-0.04}{eV} \quad \text{and} \quad E_\text{right} - E_\text{TS} < \SI{-0.04}{eV}.
+\end{equation}
+An asymmetric relaxation is also accepted, in which one side passes the standard threshold and the other a relaxed threshold:
+\begin{equation}
+    \bigl(E_\text{left} < E_\text{TS} - 0.04 \text{ and } E_\text{right} < E_\text{TS} - 0.005\bigr) \quad \text{or vice versa},
+\end{equation}
+which catches genuine early/late TSs whose product- or reactant-side well is very shallow. Both endpoints must be structurally distinct, with permutation-invariant RMSD $> \SI{0.25}{\angstrom}$ (otherwise the IRC found two near-identical structures and the ``saddle'' was a numerical artefact). The higher-energy endpoint is labelled \emph{forward} (reactant), the lower-energy \emph{backward} (product), so the reaction is consistently stored downhill in the PES-graph view.
+
+\noindent\begin{tabular}{lr}
+\toprule
+Parameter & Value \\
+\midrule
+Energy-drop target & \SI{0.08}{eV} \\
+Displacement formula & $\sqrt{2 \cdot 0.08 / |\lambda|}$~\AA \\
+Displacement clamp & $[0.02, 0.5]$~\AA \\
+Endpoint $f_\text{max}$ & \SI{0.005}{eV/\angstrom} \\
+Endpoint max steps & 120 \\
+Endpoint energy threshold & \SI{0.04}{eV} below TS (both sides) \\
+Asymmetric threshold & \SI{0.005}{eV} (one side only) \\
+Min endpoint RMSD & \SI{0.25}{\angstrom} \\
+\bottomrule
+\end{tabular}
+
+The asymmetric \SI{0.005}{eV} relaxation is necessary for late/early TSs where one side of the saddle is very flat --- without it, ring-opening and similar very-asymmetric reactions would be silently lost. However, $\SI{0.005}{eV} \approx \SI{0.12}{kcal/mol}$ is close to ML-model noise on energies; reactions accepted only by the asymmetric criterion deserve DFT cross-validation. The \SI{0.25}{\angstrom} RMSD floor catches IRCs that collapsed back into the same conformer but does not enforce ``chemically distinct'' --- that is checked at Stage 7 below and again at the per-compound minimum dedup (\S\ref{sec:shared-rmsd}, \S\ref{sec:shared-neb}).
+
+
+%-----------------------------------------------------------------------------
+\subsubsection{Stage 7 --- Endpoint classification: intramolecular vs.\ escape}
+\label{sec:pes-classify}
+%-----------------------------------------------------------------------------
+
+After IRC, each endpoint is canonicalised and a SMILES is inferred from its bonded structure (\S\ref{sec:shared-smiles}). Three classifications follow.
+
+\paragraph{Intramolecular.}
+Both endpoints have SMILES matching the originating compound. The TS connects two minima of the same compound's PES (different conformers, different protomers within the same connectivity, or different ring puckers). The saddle is committed as an edge in the per-compound PES graph (Stage 8a).
+
+\paragraph{Escape.}
+Exactly one endpoint matches the originating compound's SMILES; the other does not. The IRC has discovered a reaction that leaves the originating compound's basin and lands in a chemically different species (possibly multiple, if the relaxed product fragmented). The reaction is repackaged as an \texttt{ExplorationContext} with the originating compound as reactant and the escaped structure as product, and passed to the same multi-stage critic as the generative loop (SI-\ref{si:generative}, Stages 4--8): forward barrier gate, Hessian + IRC validation (re-run on the relocated TS for consistency), endpoint identity (greedy mode, since the escape product is by construction not in the source compound's PES), fragmentation detection, backward barrier gate.
+
+\paragraph{Anomalous.}
+Neither endpoint matches the originating compound's SMILES, or SMILES inference fails. The saddle is discarded. These are uncommon and typically reflect IRC drift into chemistry that the relaxation cannot ground: a transient charge-separated state, a partially formed bond that RDKit cannot perceive, or a fragmentation where one fragment failed canonicalisation.
+
+The escape branch is what makes the PES loop a \emph{reaction-discovery} engine rather than a conformer enumerator. Most reactions accessible from a given minimum are conformational (intramolecular) and stay within one compound's PES graph; a smaller fraction cross to new chemistry. In the main run, the PES loop produced $23\,720$ intramolecular saddles versus $69\,450$ escape candidates, of which $16\,879$ ($\sim 24\%$) survived the generative critic (SI-\ref{si:generative}, Stages 4--8).
+
+
+%-----------------------------------------------------------------------------
+\subsubsection{Stage 8 --- Commitment}
+\label{sec:pes-commit}
+%-----------------------------------------------------------------------------
+
+\paragraph{8a. Intramolecular saddles $\to$ per-compound PES graph.}
+The saddle and its two endpoints are added to the per-compound graph (one PES graph per compound). New endpoint minima go through the three-tier minimum deduplication: RMSD (\S\ref{sec:shared-rmsd}) $<$ \SI{0.01}{\angstrom} ultra-low merge; RMSD $< \SI{0.20}{\angstrom}$ and $|\Delta E| < \SI{0.05}{eV}$ fast merge; otherwise NEB same-basin check (\S\ref{sec:shared-neb}) at \SI{0.05}{eV} barrier threshold. The saddle is added as an edge unless an existing edge between the same endpoint pair has matching barrier heights within \SI{0.1}{eV} (TS edge dedup). Edge barriers prefer the trajectory force-integral form (\S\ref{sec:shared-traj}) over the endpoint difference.
+
+\paragraph{8b. Escapes $\to$ reaction graph.}
+Surviving escape contexts (after SI-\ref{si:generative} Stages 4--8) are added to the reaction graph with \texttt{discovery\_method = "pes\_exploration"}, distinguishing them from the generative-loop reactions tagged \texttt{"generative"} and the manual buffer equilibria tagged \texttt{"manual\_equilibrium"} (SI-\ref{si:seed}). Compound registration, reaction-multiset deduplication, and barrier-source priority (DFT $>$ ML in-box; SI-\ref{si:kinetics}) are identical to the generative loop.
+
+
+%-----------------------------------------------------------------------------
+\subsubsection{Pipeline funnel statistics}
+\label{sec:pes-funnel}
+%-----------------------------------------------------------------------------
+
+\begin{table}
+\centering
+\begin{tabular}{lr}
+\toprule
+Quantity & Count \\
+\midrule
+PES jobs run (minima explored)                        & $26\,282$ \\
+Intramolecular saddles found and committed            & $23\,720$ \\
+Escape candidates produced                            & $69\,450$ \\
+Escape candidates surviving generative critic (SI-\ref{si:generative}, Stages 4--8) & $16\,879$ \\
+Escape critic survival rate                           & $\sim 24\%$ \\
+\bottomrule
+\end{tabular}
+\caption{PES-loop totals for the main run. The escape critic survival rate ($24\%$) is much higher than the generative-loop submission-to-graph rate ($0.8\%$, SI-\ref{si:generative}) because the PES-loop ``proposals'' are P-RFO-converged geometries with a validated Hessian spectrum and a successful bidirectional IRC --- i.e., they have already passed the equivalent of generative Stages 5--6 before entering the critic.}
+\label{tab:pes-funnel}
+\end{table}
+
+The PES loop contributed $\sim 36\%$ of all reactions in the graph ($16\,879$ of the $\sim 47\,000$ combined). It dominates two regions of chemical space where the generative loop is weak: (i)~conformational transitions within a compound (the entire intramolecular-saddle population, which the generative loop cannot produce because it does not sample within-compound saddles), and (ii)~reactions whose TS geometry is far from the diffusion model's training distribution but is reachable by MD from a known minimum. The PES loop's reach is bounded by what MD samples at \SI{300}{K} in \SI{1.25}{ps} --- it cannot find reactions whose reactants are not already in the compound table.

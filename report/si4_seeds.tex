@@ -1,0 +1,54 @@
+% ============================================================================
+% Supplementary Information SI-4: Seed Compounds and Buffer Equilibria
+%
+% Drop-in subsection fragment. Parent SI must provide: amsmath/amssymb,
+% booktabs, siunitx, mhchem, and the tcolorbox environments {evaluation},
+% {concern}, {threshbox}. Bibliography handled at the parent level.
+% (Parameter reference lives in si_parameters.tex.)
+% ============================================================================
+
+\subsection{Seed Compounds and Buffer Equilibria}
+\label{si:seed}
+
+The system is bootstrapped with nine compounds and four hardcoded reactions. The compounds set the chemical scope and provide the unbiased starting conditions for the kinetics ODE; the four reactions inject acid--base equilibria that the diffusion model cannot discover.
+
+\paragraph{Seed compounds.}
+Eight molecules are inserted as \texttt{is\_seed = true} compounds at the first worker's startup, under a Postgres advisory lock so only one worker performs the seeding:
+\begin{itemize}
+    \item $\mathrm{CH_2O}$ (formaldehyde) --- the primary substrate, the only species at non-trace initial concentration in the upstream formose-style runs;
+    \item $\mathrm{H_2O}$ (water), $\mathrm{H_2}$ (rendered as \texttt{[HH]} since the MLFF has no electron concept and so $\mathrm{H}$ / $\mathrm{H^+}$ share that SMILES) --- universal small fragments loaded from XYZ files;
+    \item $\mathrm{CO_2}$, $\mathrm{H_2CO_3}$, $\mathrm{HCO_3^-}$, $\mathrm{OH^-}$, $\mathrm{H_3O^+}$ --- the buffer species needed to support the manual equilibria.
+\end{itemize}
+Every seed compound enters with a real 3D geometry (either from \texttt{start.xyz} or the per-fragment \texttt{.xyz} files in \texttt{fragments/}), is canonicalised through RDKit so its SMILES matches what the discovery pipeline would produce, and is registered with a single PES-graph minimum. Larger buffer compounds ($\geq 3$ atoms: $\mathrm{H_2CO_3}$, $\mathrm{HCO_3^-}$) are enqueued for PES exploration and CREST conformer search; smaller ones ($\mathrm{OH^-}$, $\mathrm{H_3O^+}$) have no internal conformers.
+
+Each seed receives an initial concentration of \SI{1}{mM} in the kinetics ODE (SI-\ref{si:kinetics}). The same baseline is applied to every runtime-discovered species so that newly-found compounds can participate in reactions at $t = 0$ instead of being trapped at exactly zero.
+
+\paragraph{Manual buffer equilibria.}
+Four acid--base reactions are seeded with literal forward and backward rate constants and tagged \texttt{discovery\_method = "manual\_equilibrium"}:
+
+\begin{center}
+\begin{tabular}{lll@{\hspace{2em}}rr}
+\toprule
+Name & Forward direction & & $k_\text{fwd}$ & $k_\text{bwd}$ \\
+\midrule
+Water autoionisation
+    & $\mathrm{H_2O \to H^+ + OH^-}$
+    && $1.8 \times 10^{-3}$ & $10^{10}$ \\
+$\mathrm{CO_2}$ hydration
+    & $\mathrm{CO_2 + H_2O \to H_2CO_3}$
+    && $5.5 \times 10^{-3}$ & $178$ \\
+$\mathrm{H_2CO_3}$ dissociation
+    & $\mathrm{H_2CO_3 \to H^+ + HCO_3^-}$
+    && $2.5 \times 10^{6}$  & $10^{10}$ \\
+Proton solvation
+    & $\mathrm{H^+ + H_2O \to H_3O^+}$
+    && $10^{10}$ & $1.0$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Units: $\si{s^{-1}}$ for unimolecular forward and \si{M^{-1}.s^{-1}} for bimolecular, by convention; the solver applies the appropriate mass-action exponents from the stoichiometry. The values are literature rate constants from the upstream reference implementation (\texttt{crn-exploration/lib/kinetic\_sampler.py}); they are not derived from Eyring and are \emph{not} re-scaled with temperature when the solver runs at a non-ambient $T$.
+
+The acid--base channels are off-limits to the diffusion proposer for a structural reason: the MD-ET force field used as the energy oracle does not represent explicit electrons, so it has no concept of a proton versus a neutral hydrogen atom. Both render to the same SMILES \texttt{[HH]}, and the model's energy/force predictions for ionic species are systematically wrong in ways that would propagate through the IRC and the barrier filters. Manual equilibria sidestep the issue entirely: their kinetic role (maintaining a self-consistent pH, ensuring $\mathrm{CO_2/H_2CO_3/HCO_3^-}$ buffering, providing a reservoir of solvated protons) is delivered by the literature rate constants, and the diffusion proposer is never asked to discover them.
+
+The rate constants are deliberately fast on the backward direction of the dissociation steps ($10^{10}\,\si{s^{-1}}$, the diffusion-limit cap; SI-\ref{si:kinetics}). The equilibria therefore reach their pH-determined ratios on the shortest timescale resolved by the integrator, so by the time discovered chemistry begins to evolve, the buffer is already at equilibrium and acts as a fast-relaxation reservoir rather than a coupled dynamic player.

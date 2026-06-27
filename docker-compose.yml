@@ -1,0 +1,67 @@
+# Local development & testing stack
+# Usage:
+#   docker compose up -d db        # Start PostgreSQL
+#   docker compose up -d db api    # Start PostgreSQL + API server
+#   docker compose down -v         # Tear down (wipe data)
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: crn
+      POSTGRES_PASSWORD: crn
+      POSTGRES_DB: crn_cloud
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crn"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: packages/api/Dockerfile.dev
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgresql://crn:crn@db:5432/crn_cloud
+    depends_on:
+      db:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: packages/worker/Dockerfile.cpu
+    restart: on-failure:3
+    environment:
+      DATABASE_URL: postgresql://crn:crn@db:5432/crn_cloud
+      HF_TOKEN: ${HF_TOKEN}
+      MAX_VALID_NODES: "10000"
+      TS_BATCH_SIZE: "8"
+      PES_MD_STEPS: "500"
+      PES_MAX_ITERATIONS: "3"
+      START_XYZ_PATH: /app/data/start_xyz/glycolaldehyde.xyz
+      FRAGMENT_PATH: /app/data/fragments
+    depends_on:
+      db:
+        condition: service_healthy
+
+  crest-worker:
+    build:
+      context: .
+      dockerfile: packages/crest-worker/Dockerfile
+    restart: on-failure:3
+    environment:
+      DATABASE_URL: postgresql://crn:crn@db:5432/crn_cloud
+      CREST_CPUS: "4"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

@@ -1,0 +1,40 @@
+FROM python:3.11-slim
+
+# System deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    graphviz graphviz-dev gcc g++ git \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+ENV PYTHONPATH=/app
+
+# Install Python dependencies (CPU-only torch)
+COPY packages/worker/requirements.txt .
+RUN grep -v '^md-et' requirements.txt > requirements_no_mdet.txt && \
+    pip install --no-cache-dir -r requirements_no_mdet.txt && \
+    pip install --no-cache-dir git+https://github.com/mx-e/md-et.git progressbar tenacity psycopg2-binary && \
+    pip install --no-cache-dir --force-reinstall --no-deps torch==2.6.0 schnetpack==2.0.3 && \
+    sed -i 's/from torch.utils.data.dataloader import _collate_fn_t, T_co/from torch.utils.data.dataloader import _collate_fn_t; T_co = object/' \
+        /usr/local/lib/python3.11/site-packages/schnetpack/data/loader.py
+
+# Cache md-et model weights at build time
+RUN python -c "from md_et import load_calculator; load_calculator(variant='12l')" || \
+    echo "Warning: Could not pre-cache md-et weights (will download at runtime)"
+
+# Copy shared DB package
+COPY packages/db /app/packages/db
+
+# Copy MoreRed (noise schedules, diffusion sampling)
+COPY packages/MoreRed_src /app/MoreRed/src
+
+# Copy TS diffusion model weights
+COPY packages/worker/models/ /app/models/
+
+# Copy data files
+COPY data/ /app/data/
+
+# Copy worker code
+COPY packages/worker/worker.py /app/worker.py
+COPY packages/worker/lib/ /app/lib/
+
+CMD ["python", "worker.py"]
