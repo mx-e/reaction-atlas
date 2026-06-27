@@ -68,19 +68,23 @@ detection happen in `lib/reaction_graph.py`.
 - **DFT** (`packages/cpu-worker/dft_runner.py`,
   `ts_corrected_runner.py`) — re-optimise selected TS geometries with
   ORCA at the reference level (PBE0); compute PBE0 single-point
-  energies on both endpoints. Stores back into
-  `IntraTransitionState.energy_TS_pbe0` etc. for the barrier
-  validation reported in SI §1.7.
+  energies on the reactant, TS, and product geometries. Stores back
+  into `Reaction.energy_{R,TS,P}_pbe0` and the derived
+  `barrier_*_pbe0` / `barrier_*_separated_pbe0` columns used by the
+  kinetics solver and reported in SI §1.7.
 
 ## Kinetics
 
 `packages/kinetics/loop.py` repeatedly:
 
 1. Snapshots the current reaction graph from the DB
-2. Builds the sparse rate matrix (Arrhenius from validated barriers)
+2. Builds the rate vector (Eyring from the separated PBE0 barriers
+   when available, else from the separated ML barriers; a handful of
+   buffer equilibria use literal `manual_k_fwd`/`manual_k_bwd` rate
+   constants directly)
 3. Integrates the ODE system (`scipy_solver.py` or PETSc backend in
    `build.py`)
-4. Writes a `KineticsSnapshot` row with the final concentrations
+4. Writes a `kinetics_snapshots` row with the trajectory payload
 
 This loop runs alongside exploration; later kinetics snapshots see
 later reaction networks.

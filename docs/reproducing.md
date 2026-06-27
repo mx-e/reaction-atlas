@@ -85,13 +85,13 @@ uv run python loop.py
 
 This polls the DB, builds the rate matrix from
 `reactions` × `intra_transition_states`, integrates, and writes
-`kinetics_snapshot` rows.
+`kinetics_snapshots` rows.
 
 ## Matching the published numbers
 
 If you have access to the published-runs dump (Zenodo; see
 `docs/data.md`), load it into Postgres and you can query the
-`intra_transition_states`, `reactions`, and `kinetics_snapshot` tables
+`intra_transition_states`, `reactions`, and `kinetics_snapshots` tables
 directly to reproduce the figures in SI §1.7 and SI §3. The schema is
 documented in `docs/schema.md`.
 
