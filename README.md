@@ -32,7 +32,6 @@ supplementary-information sources.
 | `tests/` | Unit tests for the worker libraries. | — |
 | `data/` | Reference structures used at runtime (start xyz, fragment library). | SI §1.1, §4 |
 | `neutral_seeds/` | The 152 neutral seed molecules described in SI §4. | SI §4 |
-| `conformer_pairs_dataset/`, `conformer_pairs_relaxed/` | Conformer-pair validation set. | SI §1.7 |
 
 ## Where to start reading
 

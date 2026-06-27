@@ -21,8 +21,6 @@ separately.
 | `data/fragments/` | ~7 MB | Fragment library used by `lib/fragment_mols.py` for combinatorial fragment substitution. |
 | `data/buffer_fragments/` | small | Buffer-region fragments (charge-neutralising etc.). |
 | `data/reference/` | small | Reference small-molecule structures used for sanity checks. |
-| `conformer_pairs_dataset/` | 424 KB | Conformer-pair set used in the conformer-RMSD validation (SI §1.7). XYZ + pairs.csv. |
-| `conformer_pairs_relaxed/` | 144 KB | Relaxed counterparts of the above. |
 | `investigation/29_wikipedia_compounds/` | 12 KB | Auxiliary Wikipedia-compound labelling notes; reference only. |
 
 ## Notes on the diffusion-proposer checkpoint
