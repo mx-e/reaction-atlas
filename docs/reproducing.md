@@ -30,7 +30,8 @@ uv run alembic upgrade head
 
 ## 2. Seed an experiment
 
-Pick one neutral seed as the starting compound:
+Pick a starting geometry (anything in `data/start_xyz/`, or your own
+XYZ file):
 
 ```bash
 export START_XYZ_PATH=$PWD/data/start_xyz/glycolaldehyde.xyz
@@ -39,7 +40,9 @@ export EXPERIMENT_TAG=local-test
 ```
 
 The first worker launch will canonicalise this compound, drop it into
-`pes_work_queue`, and pick up the work.
+`pes_work_queue`, and pick up the work. To seed from the published
+neutral-seed set, download the seed bundle from Zenodo (see
+`docs/data.md`) and point `START_XYZ_PATH` at one of its files.
 
 ## 3. Run a GPU worker
 
@@ -84,21 +87,13 @@ This polls the DB, builds the rate matrix from
 `reactions` × `intra_transition_states`, integrates, and writes
 `kinetics_snapshot` rows.
 
-## 6. Analyse
-
-```bash
-cd scripts
-uv run python analyze_barriers.py        # ML vs DFT barrier comparison
-uv run python dft_barrier_validation.py  # sampling-based DFT check
-```
-
-Both scripts read from `$DATABASE_URL`.
-
 ## Matching the published numbers
 
 If you have access to the published-runs dump (Zenodo; see
-`docs/data.md`), load it into Postgres and the analysis scripts above
-will reproduce the figures in SI §1.7 and SI §3.
+`docs/data.md`), load it into Postgres and you can query the
+`intra_transition_states`, `reactions`, and `kinetics_snapshot` tables
+directly to reproduce the figures in SI §1.7 and SI §3. The schema is
+documented in `docs/schema.md`.
 
 For locally-grown reaction graphs the absolute numbers will differ
 from the paper (different seeds, different RNG, different fleet

@@ -2,8 +2,8 @@
 
 Companion code for *<paper title — TODO>*.
 
-This repository contains the code that was used to generate, validate, and
-analyse the reaction networks reported in the paper. It is preserved
+This repository contains the code that was used to generate and validate
+the reaction networks reported in the paper. It is preserved
 **as-it-ran in production**: no scientific module has been refactored,
 renamed, or simplified for release. The cloud-orchestration layer
 (Terraform, Cloud Batch, GKE manifests) was specific to Google Cloud and
@@ -13,10 +13,10 @@ coordinated through PostgreSQL work queues; running a single worker
 locally against a local Postgres is sufficient to exercise the full
 pipeline on a small seed set.
 
-The full reaction-network database that backs the paper's figures is
-published separately on Zenodo (DOI: **TODO**). This repository ships
-only the code, the seed inputs, the reference structures, and the
-supplementary-information sources.
+The full reaction-network database that backs the paper's figures, and
+the seed inputs that initialised the published runs, are released
+separately on Zenodo (DOI: **TODO**). This repository ships only the
+code.
 
 ## Repository layout
 
@@ -27,24 +27,16 @@ supplementary-information sources.
 | `packages/kinetics/` | Reaction-network ODE integrator (PETSc / SciPy backends) and snapshot writer. | SI §3 |
 | `packages/db/` | SQLAlchemy schema + Alembic migrations. The schema is the canonical record of what each pipeline stage produced. | SI §6 |
 | `packages/MoreRed_src/` | Source of the diffusion proposer used by the generative loop. | SI §2.1 |
-| `scripts/` | Analysis scripts (`analyze_barriers.py`, `dft_barrier_validation.py`) and benchmarks. | SI §1.7 |
-| `report/` | LaTeX sources of the supplementary information. `merge_si.sh` builds `si_merged.tex`. | the SI itself |
-| `tests/` | Unit tests for the worker libraries. | — |
 | `data/` | Reference structures used at runtime (start xyz, fragment library). | SI §1.1, §4 |
-| `neutral_seeds/` | The 152 neutral seed molecules described in SI §4. | SI §4 |
 
 ## Where to start reading
 
-If you came here from the paper, the recommended reading order is:
-
-1. **`report/si_merged.tex`** — the supplementary information; the
-   single most useful entry point.
-2. **`docs/architecture.md`** — block diagram of how the worker, DB,
+1. **`docs/architecture.md`** — block diagram of how the worker, DB,
    and kinetics solver interact.
-3. **`docs/schema.md`** — the database schema, table by table.
-4. **`docs/reproducing.md`** — exact commands to rerun each loop on a
+2. **`docs/schema.md`** — the database schema, table by table.
+3. **`docs/reproducing.md`** — exact commands to rerun each loop on a
    small seed set.
-5. **`docs/data.md`** — pointer to the Zenodo dataset and notes on the
+4. **`docs/data.md`** — pointer to the Zenodo dataset and notes on the
    files bundled in this repo.
 
 The PES loop entry point is `packages/worker/lib/pes_explorer/pes_explorer.py`;
