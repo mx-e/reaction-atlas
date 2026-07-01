@@ -9,8 +9,8 @@ are released separately.
 
 | Resource | Location | Size | Contents |
 |---|---|---|---|
-| Full reaction-network DB | Zenodo — DOI **TODO** | ~30 GB compressed | PostgreSQL dump of all published runs: compounds, minima, transition states, reactions, DFT validation, kinetics snapshots. Restore with `pg_restore` (see Zenodo README). |
-| Seed inputs | Zenodo — DOI **TODO** | small | The neutral-seed set used to initialise the published runs (SI §4). |
+| Full reaction-network DB | [reactionatlas.bifold.berlin/downloads](https://reactionatlas.bifold.berlin/downloads) *(forthcoming)* | ~30 GB compressed | PostgreSQL dump of all published runs: compounds, minima, transition states, reactions, DFT validation, kinetics snapshots. Restore with `pg_restore` (see the download page's README). |
+| Seed inputs | [reactionatlas.bifold.berlin/downloads](https://reactionatlas.bifold.berlin/downloads) *(forthcoming)* | small | The neutral-seed set used to initialise the published runs (SI §4). |
 | `md-et` force-field checkpoint | HuggingFace (set `HF_TOKEN`) | — | Pulled at worker startup by `lib/md_et_calculator.py`. Not in this repo. |
 
 ## Bundled in this repository
@@ -29,7 +29,9 @@ The following live in the source-of-truth repo but are intentionally
 excluded from `reaction-atlas`:
 
 - `final-dump-*.sql.gz` (~30 GB compressed) — superseded by the
-  Zenodo release.
+  dataset release at
+  [reactionatlas.bifold.berlin/downloads](https://reactionatlas.bifold.berlin/downloads)
+  *(forthcoming)*.
 - `test_data/` (~10 GB) — internal regression artefacts.
 - `neutral_pairs_v12l*/` — intermediate build artefacts from a
   re-ranking experiment; not used by the published pipeline.

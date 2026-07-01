@@ -1,22 +1,24 @@
 # reaction-atlas
 
-Companion code for *<paper title — TODO>*.
+Companion code for the paper *ReactionAtlas: Ab origine exploration of
+chemical reaction networks with machine learning* (Gugler, Eissler,
+Kahouli, and Müller), [arXiv:2606.30778](https://arxiv.org/abs/2606.30778).
 
 This repository contains the code that was used to generate and validate
 the reaction networks reported in the paper. It is preserved
 **as-it-ran in production**: no scientific module has been refactored,
 renamed, or simplified for release. The cloud-orchestration layer
 (Terraform, Cloud Batch, GKE manifests) was specific to Google Cloud and
-has not been included — any new operator will want to write their own
+has not been included; any new operator will want to write their own
 orchestration anyway. The published runs used many GPU/CPU workers
 coordinated through PostgreSQL work queues; running a single worker
 locally against a local Postgres is sufficient to exercise the full
 pipeline on a small seed set.
 
 The full reaction-network database that backs the paper's figures, and
-the seed inputs that initialised the published runs, are released
-separately on Zenodo (DOI: **TODO**). This repository ships only the
-code.
+the seed inputs that initialised the published runs, will be made
+available at <https://reactionatlas.bifold.berlin/downloads>. This
+repository ships only the code.
 
 ## Repository layout
 
@@ -31,12 +33,12 @@ code.
 
 ## Where to start reading
 
-1. **`docs/architecture.md`** — block diagram of how the worker, DB,
+1. **`docs/architecture.md`**: block diagram of how the worker, DB,
    and kinetics solver interact.
-2. **`docs/schema.md`** — the database schema, table by table.
-3. **`docs/reproducing.md`** — exact commands to rerun each loop on a
+2. **`docs/schema.md`**: the database schema, table by table.
+3. **`docs/reproducing.md`**: exact commands to rerun each loop on a
    small seed set.
-4. **`docs/data.md`** — pointer to the Zenodo dataset and notes on the
+4. **`docs/data.md`**: pointer to the dataset and notes on the
    files bundled in this repo.
 
 The PES loop entry point is `packages/worker/lib/pes_explorer/pes_explorer.py`;
@@ -70,15 +72,24 @@ reproduction on a handful of seeds is. See `docs/reproducing.md`.
 
 ## License
 
-TODO — pick a license before making the repository public. The current
-state is "private, code preserved for paper review only".
+Released under the [PolyForm Noncommercial License
+1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0/); see
+[`LICENSE.md`](LICENSE.md). Any noncommercial purpose (academic
+research, teaching, evaluation, and reproduction of the paper's results)
+is permitted. This license does not grant rights for commercial use.
+
+A patent application covering the method implemented here is pending.
+The noncommercial license above does not grant any right to practice
+that method for commercial purposes; for commercial or patent
+licensing, contact the authors.
 
 ## Citation
 
 ```bibtex
-@article{TODO,
-  title  = {TODO},
-  author = {TODO},
-  year   = {TODO}
+@article{gugler2026reactionatlas,
+  title   = {ReactionAtlas: Ab origine exploration of chemical reaction networks with machine learning},
+  author  = {Gugler, Stefan and Eissler, Max and Kahouli, Khaled and M\"uller, Klaus-Robert},
+  journal = {arXiv preprint arXiv:2606.30778},
+  year    = {2026}
 }
 ```
