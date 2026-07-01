@@ -5,18 +5,14 @@ chemical reaction networks with machine learning* (Gugler, Eissler,
 Kahouli, and Müller), [arXiv:2606.30778](https://arxiv.org/abs/2606.30778).
 
 This repository contains the code that was used to generate and validate
-the reaction networks reported in the paper. It is preserved
-**as-it-ran in production**: no scientific module has been refactored,
-renamed, or simplified for release. The cloud-orchestration layer
+the reaction networks reported in the paper. The cloud-orchestration layer
 (Terraform, Cloud Batch, GKE manifests) was specific to Google Cloud and
-has not been included; any new operator will want to write their own
-orchestration anyway. The published runs used many GPU/CPU workers
+has not been included. The published runs used many GPU/CPU workers
 coordinated through PostgreSQL work queues; running a single worker
 locally against a local Postgres is sufficient to exercise the full
 pipeline on a small seed set.
 
-The full reaction-network database that backs the paper's figures, and
-the seed inputs that initialised the published runs, will be made
+The full reaction-network database that backs the paper's figures, will be made
 available at <https://reactionatlas.bifold.berlin/downloads>. This
 repository ships only the code.
 
