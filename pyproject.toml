@@ -1,0 +1,89 @@
+# Packaging / dependency manifest for reaction-atlas.
+#
+# This project is intentionally NOT built as an installable wheel: the repo
+# ships several independent components (`packages/kinetics`, `packages/db`,
+# `packages/worker`, the vendored `packages/MoreRed_src`) that are imported
+# either as `packages.*` (from the repo root) or as `lib.*` (with the worker
+# run from `packages/worker/`). `uv sync` therefore only provisions a virtual
+# environment with the right dependencies — code is run from the repo root
+# (see README "Installation"). This mirrors how the code ran in production.
+#
+#   uv sync                 # kinetics demo environment (CPU-only, no GPU)
+#   uv sync --extra worker  # full exploration environment (torch, md-et, ...)
+
+[project]
+name = "reaction-atlas"
+version = "1.0.0"
+description = "ReactionAtlas — ab origine exploration of chemical reaction networks with machine learning"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license = { text = "Apache-2.0" }
+authors = [
+    { name = "Stefan Gugler" },
+    { name = "Max Eissler" },
+    { name = "Khaled Kahouli" },
+    { name = "Klaus-Robert Müller" },
+]
+
+# Base dependencies = the self-contained, CPU-only kinetics demo
+# (packages/kinetics + the tiny slice of packages/db it imports). No GPU,
+# no PostgreSQL, no external quantum-chemistry binaries.
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "numba>=0.59",
+    "sqlalchemy>=2.0",
+    "loguru>=0.7",
+    "matplotlib>=3.7",
+]
+
+[project.optional-dependencies]
+# Full GPU/CPU exploration worker (packages/worker). Runs CPU-only when no
+# CUDA device is present (device is auto-selected), just slower.
+#
+# `md-et` is the ML force field (arXiv:2503.01431), pinned to a public release;
+# its weights are downloaded openly from Hugging Face on first use (no token).
+# `pygraphviz` needs the system Graphviz library/headers (e.g.
+# `brew install graphviz` / `apt-get install graphviz graphviz-dev`).
+worker = [
+    "torch>=2.4.0,<2.5",
+    "md-et @ git+https://github.com/mx-e/md-et.git@v0.1.0",
+    "schnetpack==2.1.1",
+    "ase>=3.23.0",
+    "rdkit>=2024.3.5",
+    "psycopg[binary]>=3.1",
+    "psycopg2-binary>=2.9",
+    "alembic>=1.13",
+    "huggingface-hub>=0.20.0",
+    "rmsd>=1.5.1",
+    "frozendict>=2.4.6",
+    "pyyaml>=6.0",
+    "pygraphviz>=1.14",
+    "progressbar2>=4.0",  # imported by the vendored MoreRed (morered.datasets)
+    "tenacity>=8.0",      # retry logic in the worker
+    "requests>=2.28",     # HTTP notifications / downloads in the worker
+]
+
+# Database layer (packages/db) — schema + Alembic migrations against Postgres.
+db = [
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "psycopg[binary]>=3.1",
+    "psycopg2-binary>=2.9",
+]
+
+dev = [
+    "pytest>=7.0",
+]
+
+[project.urls]
+Repository = "https://github.com/mx-e/reaction-atlas"
+Paper = "https://arxiv.org/abs/2606.30778"
+
+# uv: provision the environment only; do not attempt to build the repo tree
+# into a wheel (see the header comment for why).
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["packages/worker/tests"]

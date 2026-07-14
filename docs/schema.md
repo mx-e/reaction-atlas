@@ -271,12 +271,16 @@ the tables; never written by anything in `reaction-atlas`.
 | `004_experiments_tagging.py` | `experiments TEXT[]` on entity tables and `experiment TEXT` on queue/log tables; existing rows backfilled to `'main'` then default dropped so writes must set the column explicitly. |
 | `005_tag_formose_drilldown.py` | Data-only migration that tags the formose subgraph (sourced from `annotations.label`) with `'formose-drilldown'`. |
 | `006_ts_hessian_pbe0.py` | `ts_hessian_pbe0` blob + claim/timing/failure columns on reactions; partial index for the random-pick claim. |
-| `007_compounds_frontier_in.py` | `compounds.frontier_in TEXT[]` + GIN index. Records experiments where a compound is a frontier (visible, not explorable). |
 | `007_ts_corrected_pbe0.py` | `ts_ml_invalid` flag and the `ts_pbe0_corrected_*` corrected-TS columns on reactions. |
+| `008_compounds_frontier_in.py` | `compounds.frontier_in TEXT[]` + GIN index. Records experiments where a compound is a frontier (visible, not explorable). |
 
-The two `007_*` revisions share the same prefix because they were
-parallel branches merged in production; Alembic handles them as
-distinct heads.
+The migration chain is linear (`001` → … → `007` → `008`); `alembic heads`
+reports a single head. Note: in this repository `001` creates the base tables
+but not `worker_heartbeats` / the CREST / DFT / kinetics tables (those were
+added by later production deltas that pre-date this extraction), so the
+migration chain does not build a database from scratch. The canonical, complete
+schema is `packages/db/models.py`, applied via `create_all` — which is also what
+the workers do on first launch (see `docs/reproducing.md`).
 
 ---
 

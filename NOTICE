@@ -1,0 +1,49 @@
+ReactionAtlas
+Copyright 2026 The ReactionAtlas Authors
+  (Stefan Gugler, Max Eissler, Khaled Kahouli, Klaus-Robert Müller)
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Paper: "ReactionAtlas — ab origine exploration of chemical reaction networks
+with machine learning", arXiv:2606.30778.
+
+================================================================================
+Third-party components
+================================================================================
+
+This repository bundles or depends on the following third-party software. Their
+licenses are reproduced with their distributions; the summary below records the
+attributions required when redistributing.
+
+--------------------------------------------------------------------------------
+MoreRed  (vendored, packages/MoreRed_src/)
+--------------------------------------------------------------------------------
+  The generative transition-state proposer used by the exploration loop.
+  Source:  https://github.com/khaledkah/MoreRed
+  License: MIT — Copyright (c) 2024 Khaled Kahouli
+           (full text: packages/MoreRed_src/LICENSE)
+
+--------------------------------------------------------------------------------
+MD-ET  (dependency: `md-et`; the machine-learned force field)
+--------------------------------------------------------------------------------
+  The ML force field that validates transition states and drives the PES loop.
+  Installed as a Python dependency (not vendored here).
+  Paper (please cite when using MD-ET): arXiv:2503.01431
+  See the MD-ET repository for its license and attribution requirements; use of
+  the MD-ET model and weights requires attribution to the MD-ET paper above.
+
+--------------------------------------------------------------------------------
+Other key dependencies
+--------------------------------------------------------------------------------
+  SchNetPack        MIT
+  PyTorch           BSD-3-Clause
+  ASE               LGPL-2.1-or-later
+  RDKit             BSD-3-Clause
+  NumPy, SciPy      BSD-3-Clause
+  Numba, llvmlite   BSD-2-Clause
+  SQLAlchemy        MIT
+  Matplotlib        Matplotlib License (BSD-compatible)
+  loguru            MIT
+
+Each such component remains under its own license; nothing in this NOTICE or in
+the Apache-2.0 LICENSE of ReactionAtlas alters those terms.

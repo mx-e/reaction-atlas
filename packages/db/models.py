@@ -63,7 +63,7 @@ class Compound(Base):
     energy_pbe0_method = Column(Text, nullable=True)  # e.g. 'PBE0/def2-TZVPP'
     energy_pbe0_at = Column(TimestampTZ, nullable=True)
 
-    experiments = Column(ExperimentsArray, nullable=False)
+    experiments = Column(ExperimentsArray, nullable=False, default=lambda: ["main"])
     # Subset of experiments where this compound is treated as a frontier
     # (boundary) species: visible in the experiment's graph view but
     # excluded from sampling/exploration. Set when a closed-subgraph
@@ -106,7 +106,7 @@ class Minimum(Base):
     energy_pbe0_method = Column(Text, nullable=True)
     energy_pbe0_at = Column(TimestampTZ, nullable=True)
 
-    experiments = Column(ExperimentsArray, nullable=False)
+    experiments = Column(ExperimentsArray, nullable=False, default=lambda: ["main"])
 
     compound = relationship("Compound", back_populates="minima")
 
@@ -144,7 +144,7 @@ class IntraTransitionState(Base):
     energy_pbe0_method = Column(Text, nullable=True)
     energy_pbe0_at = Column(TimestampTZ, nullable=True)
 
-    experiments = Column(ExperimentsArray, nullable=False)
+    experiments = Column(ExperimentsArray, nullable=False, default=lambda: ["main"])
 
     min_fwd = relationship("Minimum", foreign_keys=[min_fwd_id])
     min_bwd = relationship("Minimum", foreign_keys=[min_bwd_id])
@@ -246,7 +246,7 @@ class Reaction(Base):
         default=lambda: datetime.now(timezone.utc),
     )
 
-    experiments = Column(ExperimentsArray, nullable=False)
+    experiments = Column(ExperimentsArray, nullable=False, default=lambda: ["main"])
 
     reactants = relationship("ReactionReactant", back_populates="reaction", cascade="all, delete-orphan")
     products = relationship("ReactionProduct", back_populates="reaction", cascade="all, delete-orphan")
@@ -300,7 +300,7 @@ class GraphEdge(Base):
     stoichiometry = Column(Integer, nullable=False, default=1)
     energy_diff = Column(Float, nullable=True)
     reaction_id = Column(Integer, ForeignKey("reactions.id"), nullable=True)
-    experiments = Column(ExperimentsArray, nullable=False)
+    experiments = Column(ExperimentsArray, nullable=False, default=lambda: ["main"])
 
 
 class PESWorkQueue(Base):
@@ -318,7 +318,7 @@ class PESWorkQueue(Base):
     worker_id = Column(Text, nullable=True)
     claimed_at = Column(TimestampTZ, nullable=True)
     completed_at = Column(TimestampTZ, nullable=True)
-    experiment = Column(Text, nullable=False)
+    experiment = Column(Text, nullable=False, default="main")
 
     compound = relationship("Compound", back_populates="pes_work_items")
     minimum = relationship("Minimum")
@@ -343,7 +343,7 @@ class WorkerHeartbeat(Base):
     batches_completed = Column(Integer, nullable=False, default=0)
     pes_completed = Column(Integer, nullable=False, default=0)
     total_wall_time_s = Column(Float, nullable=False, default=0.0)
-    experiment = Column(Text, nullable=False)
+    experiment = Column(Text, nullable=False, default="main")
 
 
 class CrestWorkQueue(Base):
@@ -359,7 +359,7 @@ class CrestWorkQueue(Base):
     worker_id = Column(Text, nullable=True)
     claimed_at = Column(TimestampTZ, nullable=True)
     completed_at = Column(TimestampTZ, nullable=True)
-    experiment = Column(Text, nullable=False)
+    experiment = Column(Text, nullable=False, default="main")
 
     compound = relationship("Compound")
 
@@ -427,7 +427,7 @@ class BatchLog(Base):
         nullable=False,
         default=lambda: datetime.now(timezone.utc),
     )
-    experiment = Column(Text, nullable=False)
+    experiment = Column(Text, nullable=False, default="main")
 
 
 class Annotation(Base):
@@ -442,7 +442,7 @@ class Annotation(Base):
     entity_key = Column(Text, nullable=False)
     label = Column(Text, nullable=True)
     notes = Column(Text, nullable=True)
-    experiments = Column(ExperimentsArray, nullable=False)
+    experiments = Column(ExperimentsArray, nullable=False, default=lambda: ["main"])
 
 
 class SavedLayout(Base):
@@ -457,7 +457,7 @@ class SavedLayout(Base):
         default=lambda: datetime.now(timezone.utc),
     )
     updated_at = Column(TimestampTZ, nullable=True)
-    experiments = Column(ExperimentsArray, nullable=False)
+    experiments = Column(ExperimentsArray, nullable=False, default=lambda: ["main"])
 
 
 class DftWorkQueue(Base):
@@ -479,7 +479,7 @@ class DftWorkQueue(Base):
     claimed_at = Column(TimestampTZ, nullable=True)
     completed_at = Column(TimestampTZ, nullable=True)
     error_msg = Column(Text, nullable=True)
-    experiment = Column(Text, nullable=False)
+    experiment = Column(Text, nullable=False, default="main")
 
 
 class KineticsSnapshot(Base):
@@ -505,4 +505,4 @@ class KineticsSnapshot(Base):
         nullable=False,
         default=lambda: datetime.now(timezone.utc),
     )
-    experiment = Column(Text, nullable=False)
+    experiment = Column(Text, nullable=False, default="main")

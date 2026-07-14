@@ -8,9 +8,9 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import JSONColumn as _PG_JSONColumn
+from sqlalchemy.dialects.postgresql import JSONB as _PG_JSONColumn
 
-# Use JSONColumn on PostgreSQL, plain JSON elsewhere
+# Use JSONB on PostgreSQL, plain JSON elsewhere
 JSONColumn = sa.JSON().with_variant(_PG_JSONColumn, "postgresql")
 TIMESTAMP = sa.DateTime
 

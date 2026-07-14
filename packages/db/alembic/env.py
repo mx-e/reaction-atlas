@@ -1,7 +1,13 @@
 """Alembic environment configuration."""
 
 import os
+import sys
 from logging.config import fileConfig
+from pathlib import Path
+
+# Make the repo root importable so `packages.db...` resolves when alembic is
+# invoked from packages/db (alembic does not add the repo root to sys.path).
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
