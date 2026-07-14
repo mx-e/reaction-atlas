@@ -32,8 +32,9 @@ CPU when no CUDA device is present (the same code path, just slower).
    ```bash
    docker compose up -d db
    export DATABASE_URL=postgresql://crn:crn@localhost:5432/crn_cloud
-   (cd packages/db && uv run --extra db alembic upgrade head)
    ```
+   No migration step is needed — the worker creates the schema on first launch
+   (`Base.metadata.create_all`; see `docs/reproducing.md`).
 
 ## Run it
 
@@ -60,7 +61,8 @@ START_XYZ_PATH=$PWD/data/start_xyz/glycolaldehyde.xyz \
 
 ## Expected output
 
-The worker logs each stage — model load, seeding, then the exploration loop:
+The worker logs each stage — model load, seeding, then the exploration loop
+(illustrative lines; the exact counts vary with config and RNG):
 
 ```
 Using device: cpu

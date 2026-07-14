@@ -75,13 +75,16 @@ Install [`uv`](https://docs.astral.sh/uv/getting-started/installation/), then
 from the repository root:
 
 ```bash
-uv sync                     # kinetics-demo environment (CPU-only)
-uv sync --extra worker      # + the full exploration worker (PyTorch, md-et, RDKit, ...)
-uv sync --extra db          # + database tooling (Alembic migrations)
+uv sync                               # kinetics-demo environment (CPU-only)
+uv sync --extra worker                # the full exploration worker (PyTorch, md-et, RDKit, ...)
+uv sync --extra worker --extra db     # worker + standalone database tooling
 ```
 
-`uv sync` provisions a virtual environment in `.venv/` from the locked
-dependencies; the repository is imported from its root (code is run with
+These are **alternatives, not cumulative**: each `uv sync` makes `.venv` match
+exactly the extras you pass, so a later `uv sync` (no extras) prunes the worker
+packages again. `--extra worker` already covers everything the base kinetics
+demo needs. `uv sync` provisions a virtual environment in `.venv/` from the
+locked dependencies; the repository is imported from its root (code is run with
 `uv run …`, see below) rather than installed as a wheel.
 
 **Typical install time on a normal desktop:**
