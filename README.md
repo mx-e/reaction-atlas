@@ -63,7 +63,7 @@ full exploration pipeline ran on Linux (x86_64 + NVIDIA GPUs) in production.
 
 ### Hardware
 
-- **No GPU is required.** Both the diffusion proposer and the force field
+- Both the diffusion proposer and the force field
   auto-select CPU when no CUDA device is present (the code picks
   `"cuda" if torch.cuda.is_available() else "cpu"`); a GPU only makes
   exploration faster. The published runs used NVIDIA L4 / A100.
