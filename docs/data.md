@@ -3,7 +3,9 @@
 This repository ships only the **runtime reference structures** the
 worker needs to start (fragment libraries, sample start geometries).
 Seeds, the full reaction-network database, and the model checkpoints
-are released separately.
+are released separately via the paper's download page —
+**[reactionatlas.bifold.berlin/downloads](https://reactionatlas.bifold.berlin/downloads)**
+(database schema + restore instructions) — with the files archived on Zenodo.
 
 ## Released externally
 
@@ -13,8 +15,9 @@ are released separately.
 | Seed inputs | Zenodo — [10.5281/zenodo.21358136](https://doi.org/10.5281/zenodo.21358136) | small | The neutral-seed set used to initialise the published runs (SI §4). |
 | `md-et` force-field checkpoint | Hugging Face, via the [`md-et`](https://arxiv.org/abs/2503.01431) package | — | Downloaded on first use by `lib/md_et_calculator.py` / `lib/energy.py`. Not in this repo. See the README "System requirements" for the package/checkpoint access. |
 
-The hosted interactive explorer (the `crn-cloud` frontend/API) and the Zenodo
-dataset are linked from the top-level README ("Links & related resources"). The
+The hosted interactive explorer (the `crn-cloud` frontend/API), the paper's
+download page, and the Zenodo dataset archive are linked from the top-level
+README ("Links & related resources"). The
 `kinetics_snapshots` table is excluded from the dump because it is large and can
 be regenerated from the restored reaction graph with the kinetics solver:
 `uv run --extra db python -m packages.kinetics.run --experiment main`.

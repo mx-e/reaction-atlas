@@ -62,7 +62,8 @@ export EXPERIMENT=main   # must be a registered experiment (see packages/db/expe
 
 The first worker launch will canonicalise this compound, drop it into
 `pes_work_queue`, and pick up the work. To seed from the published
-neutral-seed set, download the seed bundle from Zenodo (see
+neutral-seed set, download the seed bundle from the paper's download page
+(reactionatlas.bifold.berlin/downloads; files archived on Zenodo — see
 `docs/data.md`) and point `START_XYZ_PATH` at one of its files.
 
 ## 3. Run a GPU worker
@@ -123,7 +124,8 @@ steady-state distribution — reading the same tables `loop.py` does. To persist
 
 ## Matching the published numbers
 
-If you have access to the published-runs dump (Zenodo; see
+If you have access to the published-runs dump
+(reactionatlas.bifold.berlin/downloads → Zenodo; see
 `docs/data.md`), load it into Postgres and you can query the
 `intra_transition_states`, `reactions`, and `kinetics_snapshots` tables
 directly to reproduce the figures in SI §1.7 and SI §3. The schema is

@@ -27,10 +27,13 @@ small demo network.
   [reactionatlas.bifold.berlin](https://reactionatlas.bifold.berlin) — browse the
   full reaction network and its kinetics online (the frontend/API from
   `crn-cloud`, hosted separately from this code repository).
-- **Full dataset (Zenodo):**
-  [10.5281/zenodo.21358136](https://doi.org/10.5281/zenodo.21358136) — the
-  complete reaction-network database (~26 GB, `pg_restore`) and the seed inputs.
-  See [`docs/data.md`](docs/data.md).
+- **Data & downloads:**
+  [reactionatlas.bifold.berlin/downloads](https://reactionatlas.bifold.berlin/downloads)
+  — the download page cited in the paper (database schema + restore instructions);
+  the files (the ~26 GB reaction-network DB dump, `pg_restore`, and the seed inputs)
+  are archived on Zenodo,
+  [10.5281/zenodo.21358136](https://doi.org/10.5281/zenodo.21358136). See
+  [`docs/data.md`](docs/data.md).
 - **MD-ET force field:** [github.com/mx-e/md-et](https://github.com/mx-e/md-et)
   · paper [arXiv:2503.01431](https://arxiv.org/abs/2503.01431).
 - **Paper (this work):** [arXiv:2606.30778](https://arxiv.org/abs/2606.30778).
