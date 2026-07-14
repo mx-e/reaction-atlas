@@ -22,7 +22,6 @@ small demo network.
 
 ## Links & related resources
 
-- **Source code:** [github.com/mx-e/reaction-atlas](https://github.com/mx-e/reaction-atlas).
 - **Interactive explorer (hosted):**
   [reactionatlas.bifold.berlin](https://reactionatlas.bifold.berlin) — browse the
   full reaction network and its kinetics online (the frontend/API from
