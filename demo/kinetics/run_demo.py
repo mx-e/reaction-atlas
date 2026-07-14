@@ -17,6 +17,7 @@ Output:
   - a deterministic text summary of the solved steady-state distribution
     (printed to stdout; compare against expected_output.txt)
   - concentrations.png : concentration-vs-time trajectories (log-log)
+  - network.png        : networkx rendering of the reaction network
 
 Run from anywhere:
     python demo/kinetics/run_demo.py
@@ -48,6 +49,7 @@ from packages.kinetics.build import build_snapshot
 
 NETWORK_NPZ = Path(__file__).resolve().parent / "data" / "early_network.npz"
 PLOT_PATH = Path(__file__).resolve().parent / "concentrations.png"
+NETWORK_PLOT_PATH = Path(__file__).resolve().parent / "network.png"
 
 TEMPERATURE_K = 500.0   # matches the exploration temperature used in the paper
 T_MAX_S = 1e8           # integrate out to ~3 years (well past steady state)
@@ -183,6 +185,8 @@ def main() -> int:
 
     _write_plot(snap)
     print(f"[plot] wrote {PLOT_PATH.relative_to(REPO_ROOT)}")
+    _write_network_plot(d)
+    print(f"[plot] wrote {NETWORK_PLOT_PATH.relative_to(REPO_ROOT)}")
     return 0
 
 
@@ -212,6 +216,69 @@ def _write_plot(snap) -> None:
     ax.grid(True, which="both", alpha=0.2)
     fig.tight_layout()
     fig.savefig(PLOT_PATH, dpi=120)
+
+
+def _write_network_plot(d) -> None:
+    """Render the reaction network itself: compounds as nodes, one edge per
+    reactant->product pair of each reaction (self-loops from catalytic species
+    skipped). Node size/color encode degree; hubs get bold labels."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import networkx as nx
+
+    react_smiles, react_ptr = d["react_smiles"], d["react_ptr"]
+    prod_smiles, prod_ptr = d["prod_smiles"], d["prod_ptr"]
+    n_reactions = int(d["n_reactions"])
+
+    G = nx.Graph()
+    for j in range(n_reactions):
+        reactants = [str(s) for s in react_smiles[react_ptr[j]:react_ptr[j + 1]]]
+        products = [str(s) for s in prod_smiles[prod_ptr[j]:prod_ptr[j + 1]]]
+        for r in reactants:
+            for p in products:
+                if r == p:
+                    continue
+                if G.has_edge(r, p):
+                    G[r][p]["n_rxn"] += 1
+                else:
+                    G.add_edge(r, p, n_rxn=1)
+
+    deg = dict(G.degree())
+
+    # Lay out each connected component on its own: kamada-kawai + a short
+    # spring pass for the main component, small satellites parked bottom-left
+    # (a joint spring layout lets tiny components fling the main one aside).
+    comps = sorted(nx.connected_components(G), key=len, reverse=True)
+    pos = nx.kamada_kawai_layout(G.subgraph(comps[0]))
+    pos = nx.spring_layout(G.subgraph(comps[0]), pos=pos, seed=42, iterations=60,
+                           k=1.4 / np.sqrt(len(comps[0])))
+    for i, comp in enumerate(comps[1:]):
+        sub_pos = nx.spring_layout(G.subgraph(comp), seed=42)
+        for n, xy in sub_pos.items():
+            pos[n] = xy * 0.08 + np.array([-1.15 + 0.35 * i, -1.15])
+
+    fig, ax = plt.subplots(figsize=(13, 11))
+    nx.draw_networkx_edges(
+        G, pos, ax=ax, edge_color="#9aa7b1", alpha=0.65,
+        width=[0.7 + 0.5 * G[u][v]["n_rxn"] for u, v in G.edges()])
+    nx.draw_networkx_nodes(
+        G, pos, ax=ax, node_size=[70 + 50 * deg[n] for n in G.nodes()],
+        node_color=[deg[n] for n in G.nodes()],
+        cmap="viridis", linewidths=0.6, edgecolors="white")
+    nx.draw_networkx_labels(G, pos, ax=ax, font_size=9, font_weight="bold",
+                            labels={n: n for n in G.nodes() if deg[n] >= 6})
+    nx.draw_networkx_labels(
+        G, {n: (x, y + 0.028) for n, (x, y) in pos.items()}, ax=ax,
+        font_size=5.5, font_color="#333333",
+        labels={n: n for n in G.nodes() if deg[n] < 6})
+
+    ax.set_title(f"Kinetics demo network — {G.number_of_nodes()} compounds, "
+                 f"{n_reactions} reactions ({G.number_of_edges()} reactant–product edges)\n"
+                 f"node size/color = degree; disconnected satellites shown bottom-left")
+    ax.axis("off")
+    fig.tight_layout()
+    fig.savefig(NETWORK_PLOT_PATH, dpi=130)
 
 
 if __name__ == "__main__":

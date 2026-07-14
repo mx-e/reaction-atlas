@@ -32,6 +32,7 @@ Steady-state sampling distribution (top 15 of 61 active species):
 --------------------------------------------------------------------
 [timing] end-to-end build+solve wall time: <varies — see note below>
 [plot] wrote demo/kinetics/concentrations.png
+[plot] wrote demo/kinetics/network.png
 
 --------------------------------------------------------------------
 Notes
