@@ -6,17 +6,32 @@ spanned ~10⁵ GPU-hours and ~10⁵ CPU-hours on Cloud Batch. A
 seeds against a local Postgres — is straightforward and exercises the
 same code paths.
 
+> **Just want to see the solver run?** The self-contained kinetics demo
+> (`demo/kinetics/`) needs none of the prerequisites below — no GPU, no
+> PostgreSQL, no external binaries. See the top-level README, "Demo".
+
 ## Prerequisites
 
-- A CUDA-capable GPU (the published runs used L4 / A100)
-- Python 3.11+ with [`uv`](https://docs.astral.sh/uv/)
+- Python 3.11–3.12 with [`uv`](https://docs.astral.sh/uv/)
+- A CUDA-capable GPU is **optional** — the exploration worker auto-selects CPU
+  when no CUDA device is present (just slower). The published runs used L4 / A100.
 - A local PostgreSQL ≥15 (use `docker compose up -d db`)
-- For the CPU stages: `crest`, `xtb`, and `orca` binaries on PATH
+- For the DFT/CREST validation stages: `crest`, `xtb`, and `orca` binaries on PATH
+- The `pygraphviz` dependency needs the system Graphviz library
+  (`brew install graphviz` / `apt-get install graphviz graphviz-dev`).
 
-The `md-et` force-field checkpoint is **not** committed in this
-repository. It is downloaded from HuggingFace at worker boot; set
-`HF_TOKEN` in the environment. The diffusion-proposer checkpoint *is*
-committed (`packages/worker/models/ts_best_model`).
+The diffusion-proposer checkpoint *is* committed
+(`packages/worker/models/ts_best_model`). The `md-et` force-field checkpoint is
+downloaded from Hugging Face on first use by the `md-et` package (see the
+README "System requirements" for the public release / pin).
+
+## 0. Install
+
+```bash
+uv sync --extra worker      # exploration environment (torch, md-et, rdkit, ...)
+```
+
+`uv sync` (no extras) installs only the CPU-only kinetics-demo environment.
 
 ## 1. Bring up the database
 
@@ -24,9 +39,15 @@ committed (`packages/worker/models/ts_best_model`).
 docker compose up -d db
 export DATABASE_URL=postgresql://crn:crn@localhost:5432/crn_cloud
 
-cd packages/db
-uv run alembic upgrade head
+# Create the schema. The workers create it automatically on first launch
+# (Base.metadata.create_all from packages/db/models.py — the canonical schema),
+# so this is only needed for a clean, empty database ahead of time:
+uv run --extra db python -c "from packages.db.connection import init_db; init_db()"
 ```
+
+> The Alembic migrations under `packages/db/alembic/versions/` record the
+> production schema deltas; the canonical, complete schema is
+> `packages/db/models.py`, applied via `create_all` above.
 
 ## 2. Seed an experiment
 
@@ -49,8 +70,12 @@ and point `START_XYZ_PATH` at one of its files.
 
 ```bash
 cd packages/worker
-uv run python worker.py
+uv run --extra worker python worker.py
 ```
+
+(Runs on CPU automatically if no CUDA GPU is present — slower, but the same
+code path. For a minimal single-seed exploration on a laptop, see
+`demo/exploration/`.)
 
 Parameters that control the published runs (see SI §1 for derivations)
 are read from environment variables; the relevant defaults are listed
@@ -70,23 +95,28 @@ The worker exits cleanly when its queue is drained (or on SIGTERM).
 
 ```bash
 cd packages/cpu-worker
-uv run python worker.py
+uv run --extra worker python worker.py
 ```
 
 This consumes `crest_work_queue` first, then `dft_work_queue`. The
 PBE0 single-points and TS corrections are by far the slowest stage in
 the pipeline.
 
-## 5. Run the kinetics solver
+## 5. Solve the kinetics network
+
+`packages/kinetics/loop.py` is the background solver that runs *inside the API
+service* (an asyncio task holding a Postgres advisory lock per experiment).
+This repository ships the solver but not the API host, so run a one-shot solve
+with the bundled CLI instead:
 
 ```bash
-cd packages/kinetics
-uv run python loop.py
+uv run --extra db python -m packages.kinetics.run --experiment main
 ```
 
-This polls the DB, builds the rate matrix from
-`reactions` × `intra_transition_states`, integrates, and writes
-`kinetics_snapshots` rows.
+It builds the mass-action ODE model from the `reactions` graph, integrates it
+(PETSc BDF if `petsc4py` is installed, otherwise scipy BDF), and prints the
+steady-state distribution — reading the same tables `loop.py` does. To persist
+`kinetics_snapshots` rows instead, run the API service (not in this repo).
 
 ## Matching the published numbers
 

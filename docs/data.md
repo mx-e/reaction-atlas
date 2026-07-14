@@ -9,9 +9,15 @@ are released separately.
 
 | Resource | Location | Size | Contents |
 |---|---|---|---|
-| Full reaction-network DB | [reactionatlas.bifold.berlin/downloads](https://reactionatlas.bifold.berlin/downloads) *(forthcoming)* | ~30 GB compressed | PostgreSQL dump of all published runs: compounds, minima, transition states, reactions, DFT validation, kinetics snapshots. Restore with `pg_restore` (see the download page's README). |
-| Seed inputs | [reactionatlas.bifold.berlin/downloads](https://reactionatlas.bifold.berlin/downloads) *(forthcoming)* | small | The neutral-seed set used to initialise the published runs (SI §4). |
-| `md-et` force-field checkpoint | HuggingFace (set `HF_TOKEN`) | — | Pulled at worker startup by `lib/md_et_calculator.py`. Not in this repo. |
+| Full reaction-network DB | Zenodo — [10.5281/zenodo.21358136](https://doi.org/10.5281/zenodo.21358136) | ~26 GB compressed | PostgreSQL dump of all published runs: compounds, minima, transition states, reactions, and DFT validation. The `kinetics_snapshots` are **not** included (they are large and fully regenerable from the reaction graph — see below). Restore with `pg_restore` (see Zenodo README). |
+| Seed inputs | Zenodo — [10.5281/zenodo.21358136](https://doi.org/10.5281/zenodo.21358136) | small | The neutral-seed set used to initialise the published runs (SI §4). |
+| `md-et` force-field checkpoint | Hugging Face, via the [`md-et`](https://arxiv.org/abs/2503.01431) package | — | Downloaded on first use by `lib/md_et_calculator.py` / `lib/energy.py`. Not in this repo. See the README "System requirements" for the package/checkpoint access. |
+
+The hosted interactive explorer (the `crn-cloud` frontend/API) and the Zenodo
+dataset are linked from the top-level README ("Links & related resources"). The
+`kinetics_snapshots` table is excluded from the dump because it is large and can
+be regenerated from the restored reaction graph with the kinetics solver:
+`uv run --extra db python -m packages.kinetics.run --experiment main`.
 
 ## Bundled in this repository
 

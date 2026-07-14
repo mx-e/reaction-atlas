@@ -1,0 +1,47 @@
+====================================================================
+ReactionAtlas — kinetics demo
+====================================================================
+Input network      : early_network.npz  (from published checkpoint checkpoint_60.sql)
+Compounds / edges  : 64 compounds, 80 raw reaction edges
+Temperature        : 500 K
+Integration horizon: 1e+08 s
+--------------------------------------------------------------------
+Solved reaction network (via packages.kinetics.build.build_snapshot):
+  species in ODE system     : 64
+  reactions in ODE system   : 49
+    of which manual equilibria: 4
+    of which using DFT (PBE0) : 37
+--------------------------------------------------------------------
+Steady-state sampling distribution (top 15 of 61 active species):
+      weight   SMILES
+      0.0374   O=C=O
+      0.0373   C[C@H](O)OC=O
+      0.0366   COCO
+      0.0310   OCC(O)O
+      0.0278   CC(O)=C(O)O
+      0.0278   O=C/C=C\O
+      0.0278   OCOCC(O)O
+      0.0278   OC[C@H]1O[C@H]1O
+      0.0278   [H]/[C-]=[O+]\C
+      0.0278   O=CC(O)O
+      0.0277   O=C(O)CCO
+      0.0267   C[C@@H](O)OC=O
+      0.0262   O=C[C@@H](O)CO
+      0.0230   CC(O)O
+      0.0229   O=COCCO
+--------------------------------------------------------------------
+[timing] end-to-end build+solve wall time: <varies — see note below>
+[plot] wrote demo/kinetics/concentrations.png
+
+--------------------------------------------------------------------
+Notes
+--------------------------------------------------------------------
+Runtime: ~10-25 s on the first run (one-time numba JIT compilation of the
+ODE right-hand-side / Jacobian kernels + matplotlib font-cache build), and
+~1-2 s on subsequent runs (numba caches the compiled kernels to disk).
+
+Determinism: the reaction counts (49 reactions, 64 species, 4 equilibria,
+37 DFT) and the dominant steady-state species are stable across runs and
+machines. The exact steady-state weights in the last decimal place may vary
+slightly with the BLAS/LAPACK build behind scipy's BDF integrator; this does
+not affect the qualitative result.

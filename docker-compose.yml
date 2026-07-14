@@ -1,8 +1,18 @@
-# Local development & testing stack
-# Usage:
-#   docker compose up -d db        # Start PostgreSQL
-#   docker compose up -d db api    # Start PostgreSQL + API server
-#   docker compose down -v         # Tear down (wipe data)
+# Local development database for reaction-atlas.
+#
+# This repository ships the scientific code, not the cloud orchestration or the
+# (separately hosted) API/frontend. The only service needed to exercise the
+# pipeline locally is PostgreSQL:
+#
+#   docker compose up -d db     # start PostgreSQL on localhost:5432
+#   docker compose down -v      # stop and wipe the data volume
+#
+# The GPU/CPU exploration workers and the kinetics CLI are run directly with
+# `uv` (see docs/reproducing.md), pointing at the DATABASE_URL below:
+#
+#   export DATABASE_URL=postgresql://crn:crn@localhost:5432/crn_cloud
+#
+# The self-contained kinetics demo (demo/kinetics/) needs no database at all.
 
 services:
   db:
@@ -20,48 +30,6 @@ services:
       interval: 2s
       timeout: 5s
       retries: 10
-
-  api:
-    build:
-      context: .
-      dockerfile: packages/api/Dockerfile.dev
-    ports:
-      - "8080:8080"
-    environment:
-      DATABASE_URL: postgresql://crn:crn@db:5432/crn_cloud
-    depends_on:
-      db:
-        condition: service_healthy
-
-  worker:
-    build:
-      context: .
-      dockerfile: packages/worker/Dockerfile.cpu
-    restart: on-failure:3
-    environment:
-      DATABASE_URL: postgresql://crn:crn@db:5432/crn_cloud
-      HF_TOKEN: ${HF_TOKEN}
-      MAX_VALID_NODES: "10000"
-      TS_BATCH_SIZE: "8"
-      PES_MD_STEPS: "500"
-      PES_MAX_ITERATIONS: "3"
-      START_XYZ_PATH: /app/data/start_xyz/glycolaldehyde.xyz
-      FRAGMENT_PATH: /app/data/fragments
-    depends_on:
-      db:
-        condition: service_healthy
-
-  crest-worker:
-    build:
-      context: .
-      dockerfile: packages/crest-worker/Dockerfile
-    restart: on-failure:3
-    environment:
-      DATABASE_URL: postgresql://crn:crn@db:5432/crn_cloud
-      CREST_CPUS: "4"
-    depends_on:
-      db:
-        condition: service_healthy
 
 volumes:
   pgdata:

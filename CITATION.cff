@@ -1,0 +1,41 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the paper below."
+title: "ReactionAtlas"
+abstract: >-
+  Code for ab origine exploration of chemical reaction networks with machine
+  learning: a machine-learned generative model proposes reactions and a
+  machine-learned force field validates transition states, growing a reaction
+  network from a small set of seed molecules.
+type: software
+version: "1.0.0"
+license: Apache-2.0
+authors:
+  - family-names: Gugler
+    given-names: Stefan
+  - family-names: Eissler
+    given-names: Max
+  - family-names: Kahouli
+    given-names: Khaled
+  - family-names: Müller
+    given-names: Klaus-Robert
+# repository-code: "https://github.com/<org>/reaction-atlas"   # TODO: set on release
+url: "https://arxiv.org/abs/2606.30778"
+preferred-citation:
+  type: article
+  title: "ReactionAtlas: ab origine exploration of chemical reaction networks with machine learning"
+  authors:
+    - family-names: Gugler
+      given-names: Stefan
+    - family-names: Eissler
+      given-names: Max
+    - family-names: Kahouli
+      given-names: Khaled
+    - family-names: Müller
+      given-names: Klaus-Robert
+  year: 2026
+  identifiers:
+    - type: other
+      value: "arXiv:2606.30778"
+      description: arXiv preprint
+    # - type: doi
+    #   value: "10.1038/TODO"          # TODO: add the Nature DOI once assigned
