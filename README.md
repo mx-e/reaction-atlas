@@ -55,9 +55,10 @@ Exact, reproducible versions of the demo environment are locked in
 
 ### Operating systems
 
-Tested on **macOS 14/15 (Apple Silicon, arm64)** and **Linux (Ubuntu 22.04,
-x86_64)**. The kinetics demo below was verified on macOS 15 / Python 3.11; the
-full exploration pipeline ran on Linux (x86_64 + NVIDIA GPUs) in production.
+Tested on **macOS 14/15 (Apple Silicon, arm64)** and **Linux (Ubuntu 22.04 and
+Manjaro rolling with kernel 6.6, both x86_64)**. The kinetics demo below was
+verified on macOS 15 / Python 3.11; the full exploration pipeline ran on Linux
+(x86_64 + NVIDIA GPUs) in production.
 
 ### Hardware
 
