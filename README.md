@@ -45,7 +45,7 @@ small demo network.
 |---|---|---|
 | Python | 3.11–3.12 | tested on **3.11** |
 | [`uv`](https://docs.astral.sh/uv/) | ≥ 0.5 | environment/dependency manager |
-| **Kinetics demo** (base) | numpy ≥ 1.24, scipy ≥ 1.10, numba ≥ 0.59, SQLAlchemy ≥ 2.0, matplotlib ≥ 3.7, loguru ≥ 0.7 | pinned in `uv.lock`; installed by `uv sync` |
+| **Kinetics demo** (base) | numpy ≥ 1.24, scipy ≥ 1.10, numba ≥ 0.59, SQLAlchemy ≥ 2.0, matplotlib ≥ 3.7, networkx ≥ 3.0, loguru ≥ 0.7 | pinned in `uv.lock`; installed by `uv sync` |
 | **Exploration worker** (`--extra worker`) | PyTorch 2.4.x, SchNetPack 2.1.1, ASE ≥ 3.23, RDKit ≥ 2024.3.5, [`md-et`](https://arxiv.org/abs/2503.01431), huggingface-hub ≥ 0.20, psycopg 3, Alembic ≥ 1.13, pygraphviz ≥ 1.14 | see [Installation](#2-installation-guide) |
 | **Database** (`--extra db`) | PostgreSQL ≥ 15, Alembic ≥ 1.13, psycopg 3 | `docker compose up -d db` |
 | DFT validation (optional) | `orca`, `crest`, `xtb` on `PATH` | external binaries, not bundled |
