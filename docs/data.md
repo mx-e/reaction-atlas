@@ -35,9 +35,7 @@ The following live in the source-of-truth repo but are intentionally
 excluded from `reaction-atlas`:
 
 - `final-dump-*.sql.gz` (~30 GB compressed) — superseded by the
-  dataset release at
-  [reactionatlas.bifold.berlin/downloads](https://reactionatlas.bifold.berlin/downloads)
-  *(forthcoming)*.
+  Zenodo release.
 - `test_data/` (~10 GB) — internal regression artefacts.
 - `neutral_pairs_v12l*/` — intermediate build artefacts from a
   re-ranking experiment; not used by the published pipeline.
