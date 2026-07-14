@@ -9,35 +9,33 @@ with no hand-written rules: a machine-learned generative model proposes
 transition-state candidates, a machine-learned force field (MD-ET) validates
 them, and the discovered products feed back as new seeds. A kinetics solver
 integrates the resulting mass-action network. Starting from eight pre-biotic
-molecules, the published run discovered ~47,000 reactions among ~12,000
+molecules, the published run discovered ~48,000 reactions among ~12,000
 compounds.
 
 This repository is preserved **as-it-ran in production**: no scientific module
 has been refactored or renamed for release. The cloud-orchestration layer
 (Terraform, Cloud Batch, GKE) and the web API/frontend are hosted separately
-and are not included here — a new operator will want their own orchestration.
+and are not included here. A new operator will want their own orchestration.
 The full reaction-network database and the seed inputs are released on Zenodo
 (see [`docs/data.md`](docs/data.md)); this repository ships the code plus a
 small demo network.
 
 ## Links & related resources
 
-- **Interactive explorer (hosted):**
-  [reactionatlas.bifold.berlin](https://reactionatlas.bifold.berlin) — browse the
+- **Interactive explorer (hosted demo):**
+  [reactionatlas.bifold.berlin](https://reactionatlas.bifold.berlin): browse the
   full reaction network and its kinetics online (the frontend/API from
   `crn-cloud`, hosted separately from this code repository).
 - **Data & downloads:**
-  [reactionatlas.bifold.berlin/downloads](https://reactionatlas.bifold.berlin/downloads)
-  — the download page cited in the paper (database schema + restore instructions);
+  [reactionatlas.bifold.berlin/downloads](https://reactionatlas.bifold.berlin/downloads): the download page cited in the paper (database schema + restore instructions);
   the files (the ~26 GB reaction-network DB dump, `pg_restore`, and the seed inputs)
   are archived on Zenodo,
   [10.5281/zenodo.21358136](https://doi.org/10.5281/zenodo.21358136). See
   [`docs/data.md`](docs/data.md).
 - **MD-ET force field:** [github.com/mx-e/md-et](https://github.com/mx-e/md-et)
-  · paper [arXiv:2503.01431](https://arxiv.org/abs/2503.01431).
-- **Paper (this work):** [arXiv:2606.30778](https://arxiv.org/abs/2606.30778).
+  and [arXiv paper](https://arxiv.org/abs/2503.01431) and [JCP paper](https://pubs.aip.org/aip/jcp/article/164/9/094308/3381953/How-simple-can-you-go-An-off-the-shelf-transformer).
+- **Pre-print (this work):** [arXiv:2606.30778](https://arxiv.org/abs/2606.30778).
 
----
 
 ## 1. System requirements
 
@@ -69,7 +67,6 @@ full exploration pipeline ran on Linux (x86_64 + NVIDIA GPUs) in production.
   exploration faster. The published runs used NVIDIA L4 / A100.
 - The kinetics demo runs in ~1 GB RAM on any modern laptop.
 
----
 
 ## 2. Installation guide
 
@@ -97,13 +94,12 @@ locked dependencies; the repository is imported from its root (code is run with
   Graphviz library first: `brew install graphviz` (macOS) or
   `apt-get install graphviz graphviz-dev` (Debian/Ubuntu).
 
----
 
 ## 3. Demo
 
-### Demo 1 — Kinetics (self-contained, CPU-only) — **start here**
+### Demo 1: Kinetics (self-contained, CPU-only)
 
-Runs the actual kinetics pipeline on a small **real** early-exploration network
+Runs the kinetics pipeline on a small **real** early-exploration network
 (64 compounds, 80 reactions, extracted from a published checkpoint; ~8 KB,
 shipped in `demo/kinetics/data/`). No GPU, no database, no downloads.
 
@@ -114,23 +110,23 @@ uv run python demo/kinetics/run_demo.py
 
 **Expected output** (full text in
 [`demo/kinetics/expected_output.txt`](demo/kinetics/expected_output.txt)):
-the network is built and solved via `packages.kinetics.build.build_snapshot` —
-49 reactions over 64 species (4 buffer equilibria, 37 using DFT barriers) — and
+the network is built and solved via `packages.kinetics.build.build_snapshot`.
+49 reactions over 64 species (4 buffer equilibria, 37 using DFT barriers) and
 the dominant steady-state species and a concentration-vs-time plot
 (`demo/kinetics/concentrations.png`, compare with the committed
 [`expected_concentrations.png`](demo/kinetics/expected_concentrations.png)) are
 produced.
 
-**Expected run time:** ~10–25 s on the first run (one-time numba JIT
-compilation + matplotlib font cache), ~1–2 s afterwards.
+**Expected run time:** ~10-25 s on the first run (one-time numba JIT
+compilation + matplotlib font cache), ~1-2 s afterwards.
 
 See [`demo/kinetics/README.md`](demo/kinetics/README.md) for details.
 
-### Demo 2 — Minimal exploration (representative, CPU)
+### Demo 2: Minimal exploration (representative, CPU)
 
-Runs one iteration of the real discovery loop on a single seed molecule on CPU
-— generative TS proposal → MD-ET validation → saddle search → IRC → reaction
-graph — writing the discovered minima / transition states / reactions to a
+Runs one iteration of the real discovery loop on a single seed molecule on CPU:
+generative TS proposal → MD-ET validation → saddle search → IRC → reaction
+graph. It will write the discovered minima / transition states / reactions to a
 local PostgreSQL. This is the demo that exercises the paper's core method.
 
 ```bash
@@ -142,13 +138,12 @@ docker compose up -d db
 Expected output, expected run time, and details are in
 [`demo/exploration/README.md`](demo/exploration/README.md).
 
----
 
 ## 4. Instructions for use (your own data)
 
 - **Grow a new network from your own seed.** Point the worker at any XYZ start
   geometry and run an exploration against a local PostgreSQL. See
-  [`docs/reproducing.md`](docs/reproducing.md) (steps 1–4) and
+  [`docs/reproducing.md`](docs/reproducing.md) (steps 1-4) and
   `demo/exploration/` for the minimal single-seed case.
 - **Solve kinetics on a network you have.** Against any populated database (a
   live run, or one restored from the Zenodo dump):
@@ -159,7 +154,6 @@ Expected output, expected run time, and details are in
 - **Query the database directly.** The schema is the canonical record of every
   pipeline stage; see [`docs/schema.md`](docs/schema.md).
 
----
 
 ## 5. Reproduction of the published results
 
@@ -169,27 +163,26 @@ faithful **small-scale** reproduction that exercises the same code paths, and
 explains how to restore the full published database from Zenodo
 ([`docs/data.md`](docs/data.md)) to reproduce the figures.
 
----
 
 ## Repository layout
 
 | Path | Purpose | SI reference |
 |---|---|---|
-| `packages/worker/` | GPU/CPU worker: PES loop, generative TS loop, IRC, reaction-graph assembly. The diffusion-proposer checkpoint (`models/ts_best_model`) is committed. | SI §1, §2, §6 |
-| `packages/cpu-worker/` | CREST conformer search, ORCA TS correction, PBE0 DFT barrier validation. | SI §1.7, §2.6 |
-| `packages/kinetics/` | Reaction-network ODE integrator (PETSc / SciPy backends) + `run.py` CLI. | SI §3 |
-| `packages/db/` | SQLAlchemy schema + Alembic migrations. | SI §6 |
-| `packages/MoreRed_src/` | Vendored [MoreRed](https://github.com/khaledkah/MoreRed) diffusion proposer (MIT). | SI §2.1 |
-| `demo/` | Self-contained kinetics demo + minimal exploration demo. | — |
-| `data/` | Runtime reference structures (start geometries, fragment library). | SI §1.1, §4 |
+| `packages/worker/` | GPU/CPU worker: PES loop, generative TS loop, IRC, reaction-graph assembly. The diffusion-proposer checkpoint (`models/ts_best_model`) is committed. | SI S1, S2, S6 |
+| `packages/cpu-worker/` | CREST conformer search, ORCA TS correction, PBE0 DFT barrier validation. | SI S1.7, S2.6 |
+| `packages/kinetics/` | Reaction-network ODE integrator (PETSc / SciPy backends) + `run.py` CLI. | SI S3 |
+| `packages/db/` | SQLAlchemy schema + Alembic migrations. | SI S6 |
+| `packages/MoreRed_src/` | Vendored [MoreRed](https://github.com/khaledkah/MoreRed) diffusion proposer (MIT). | SI S2.1 |
+| `demo/` | Self-contained kinetics demo + minimal exploration demo. | - |
+| `data/` | Runtime reference structures (start geometries, fragment library). | SI S1.1, S4 |
 
 ### Where to start reading
 
-1. [`docs/architecture.md`](docs/architecture.md) — how the worker, DB, and
+1. [`docs/architecture.md`](docs/architecture.md): how the worker, DB, and
    kinetics solver interact.
-2. [`docs/schema.md`](docs/schema.md) — the database schema, table by table.
-3. [`docs/reproducing.md`](docs/reproducing.md) — commands to rerun each loop.
-4. [`docs/data.md`](docs/data.md) — the Zenodo dataset and bundled files.
+2. [`docs/schema.md`](docs/schema.md): the database schema, table by table.
+3. [`docs/reproducing.md`](docs/reproducing.md): commands to rerun each loop.
+4. [`docs/data.md`](docs/data.md): the Zenodo dataset and bundled files.
 
 The PES loop entry point is
 `packages/worker/lib/pes_explorer/pes_explorer.py`; the generative-loop pipeline
@@ -199,14 +192,13 @@ is `packages/worker/lib/ts_pipeline.py`; the saddle-search optimiser is
 ### Where the algorithm is described
 
 A complete, detailed description of the method (with pseudocode) is in the
-paper's **Methods** section and **Supplementary Information** (SI §1–§3); the
+paper's **Methods** section and **Supplementary Information** (SI S1–S3). The
 SI-section cross-references above map each component to the code.
 
----
 
 ## License
 
-Apache License 2.0 — see [`LICENSE`](LICENSE). Third-party components (the
+Apache License 2.0 (see [`LICENSE`](LICENSE)). Third-party components (the
 vendored MoreRed under MIT, and the `md-et` force field) are listed in
 [`NOTICE`](NOTICE); MD-ET use requires citing
 [arXiv:2503.01431](https://arxiv.org/abs/2503.01431).
