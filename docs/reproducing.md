@@ -57,7 +57,7 @@ XYZ file):
 ```bash
 export START_XYZ_PATH=$PWD/data/start_xyz/glycolaldehyde.xyz
 export FRAGMENT_PATH=$PWD/data/fragments
-export EXPERIMENT_TAG=local-test
+export EXPERIMENT=main   # must be a registered experiment (see packages/db/experiments.py)
 ```
 
 The first worker launch will canonicalise this compound, drop it into
@@ -69,8 +69,12 @@ and point `START_XYZ_PATH` at one of its files.
 ## 3. Run a GPU worker
 
 ```bash
+# demo/exploration/run_demo.sh is the easiest correct launcher (it sets the
+# paths, EXPERIMENT, and PYTHONPATH). To run worker.py directly, put the repo
+# root AND packages/worker on PYTHONPATH (worker.py mixes `packages.*` and
+# `lib.*` imports):
 cd packages/worker
-uv run --extra worker python worker.py
+PYTHONPATH="$(cd ../.. && pwd):$PWD" uv run --extra worker python worker.py
 ```
 
 (Runs on CPU automatically if no CUDA GPU is present — slower, but the same
@@ -85,9 +89,9 @@ in `lib/pes_explorer/pes_explorer.py` (`ExploreConfig`) and
 | Variable | Default | What it controls |
 |---|---|---|
 | `PES_MD_STEPS` | 500 | MD steps per PES seed |
-| `PES_MAX_ITERATIONS` | 3 | PES sweeps before exit |
-| `TS_BATCH_SIZE` | 8 | Generative-loop batch size |
-| `MAX_VALID_NODES` | 10000 | Soft cap on graph size |
+| `PES_MAX_ITERATIONS` | 10 | PES sweeps before exit |
+| `TS_BATCH_SIZE` | 32 | Generative-loop batch size |
+| `MAX_VALID_NODES` | 1000 | Soft cap on graph size |
 
 The worker exits cleanly when its queue is drained (or on SIGTERM).
 

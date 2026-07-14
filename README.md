@@ -22,6 +22,7 @@ small demo network.
 
 ## Links & related resources
 
+- **Source code:** [github.com/mx-e/reaction-atlas](https://github.com/mx-e/reaction-atlas).
 - **Interactive explorer (hosted):**
   [reactionatlas.bifold.berlin](https://reactionatlas.bifold.berlin) — browse the
   full reaction network and its kinetics online (the frontend/API from
@@ -130,7 +131,7 @@ local PostgreSQL. This is the demo that exercises the paper's core method.
 ```bash
 uv sync --extra worker           # includes the public md-et package
 docker compose up -d db
-uv run python demo/exploration/run_demo.py
+./demo/exploration/run_demo.sh   # sets DATABASE_URL / EXPERIMENT / paths; the worker auto-creates the schema
 ```
 
 Expected output, expected run time, and details are in

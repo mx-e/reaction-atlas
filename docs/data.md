@@ -27,7 +27,7 @@ be regenerated from the restored reaction graph with the kinetics solver:
 | `data/fragments/` | ~7 MB | Fragment library used by `lib/fragment_mols.py` for combinatorial fragment substitution. |
 | `data/buffer_fragments/` | small | Buffer-region fragments (charge-neutralising etc.). |
 | `data/reference/` | small | Reference small-molecule structures used for sanity checks. |
-| `packages/worker/models/ts_best_model/` | ~10 MB | Diffusion-proposer checkpoint. Committed because the published runs depended on this exact weights file. The MoreRed source that consumes it is in `packages/MoreRed_src/`. |
+| `packages/worker/models/ts_best_model` | ~10 MB | Diffusion-proposer checkpoint. Committed because the published runs depended on this exact weights file. The MoreRed source that consumes it is in `packages/MoreRed_src/`. |
 
 ## Files explicitly *not* shipped
 

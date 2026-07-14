@@ -77,6 +77,7 @@ dev = [
 ]
 
 [project.urls]
+Repository = "https://github.com/mx-e/reaction-atlas"
 Paper = "https://arxiv.org/abs/2606.30778"
 
 # uv: provision the environment only; do not attempt to build the repo tree
