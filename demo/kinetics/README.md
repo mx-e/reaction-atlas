@@ -1,4 +1,4 @@
-# Demo 1 — Kinetics (self-contained, CPU-only)
+# Demo 1: Kinetics (self-contained, CPU-only)
 
 This demo runs the **actual ReactionAtlas kinetics pipeline** on a small, real
 early-exploration reaction network and produces a steady-state distribution, a
