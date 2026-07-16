@@ -53,14 +53,11 @@ and proposing transition states. Let it run for a few minutes and stop it with
 Ctrl-C, then inspect what was explored. All parameters can be changed; for
 detailed control see the header of `run_demo.sh`.
 
-> **A note on the barrier cap.** At production scale the worker only accepts
-> reactions below a physical barrier cap (`ENERGY_THRESHOLD_HARTREE = 0.1 Ha ≈
-> 2.72 eV`). From a *single tiny seed* almost every reachable reaction sits above
-> that cap, so a laptop-scale run would grow no network at all. The demo
-> therefore **relaxes the cap** (`ENERGY_THRESHOLD_EV=1000`, effectively off) so
-> that genuinely higher-barrier reactions still register as discoveries and you
-> can watch the network grow. Set `ENERGY_THRESHOLD_EV=2.72` to reproduce the
-> production acceptance criterion.
+> In the production run, the worker only accepted
+> reactions below a physical barrier limit (`ENERGY_THRESHOLD_HARTREE = 0.1 Ha ≈
+> 2.72 eV`). Because exploration is slower in the beginning and this demo is not made for
+> dedicated hardware, we turned this limit off in order to find reactions faster, i.e.
+> for convenience. 
 
 ## Expected output
 
@@ -74,7 +71,7 @@ Seeded equilibrium 'water_autoionization': O ⇌ [HH] + [OH-] ...
 Seeding complete, 9 compounds
 Barrier acceptance cap: 1000.000 eV
 Entering main exploration loop
-Claimed PES work (explore): compound_id=1 minimum_id=1               # PES / MD escape
+Claimed PES work (explore): compound_id=1 minimum_id=1              # PES / MD escape
 Denoising ...  500it [00:02, 190 it/s]                              # MoreRed proposer
 Valid escaped reaction from O=CCO: barrier_fwd=2.918 eV             # a discovery!
 Round N: exploring 4 contexts ...
@@ -105,29 +102,25 @@ uv run --extra worker python demo/exploration/plot_discoveries.py
 ```
 
 This writes `network.png` and `growth.png` next to the script. The reference
-images below are from a longer single-seed run (glycolaldehyde, ~1.5 h on one
-GPU); a few minutes on a laptop yields the same picture with fewer discoveries.
+images below are from a 1h GPU run.
+A few minutes on a laptop may likely yield less discoveries.
 
 ![Reaction network grown from a single seed](expected_network.png)
 
-**The network.** Compounds are drawn with RDKit; a **yellow** frame marks a
-**seeded** species and a **blue** frame a **newly discovered** one. Edges are
-reactions. The seeds are the start sugar glycolaldehyde, formaldehyde, and the
-water/carbonate buffer (H₂O, H₃O⁺, OH⁻, H₂, CO₂, carbonic acid, bicarbonate)
+A yellow frame marks aan initial species and a blue frame a newly discovered one, and 
+edges denote reactions. The seeds are the start sugar glycolaldehyde, formaldehyde, and the
+water/carbonate buffer (H2O, H3O+, OH-, H2, CO2, carbonic acid, bicarbonate)
 wired together by the four buffer equilibria. Around them the exploration has
-grown **seven new compounds** (blue) — among them methane and acetic acid off
-CO₂, a hydroxycarbene and a dioxetane off the C1/C2 carbonyls, and assorted
-formyl/oxo species. Disconnected fragments are spread on their own grid below so
-every molecule stays legible even before it joins the main network.
+grown seven new compounds (blue).
+Among them is methane and acetic acid off
+CO₂, a hydroxycarbene and a dioxetane off the C1/C2 carbonyls. 
+Disconnected fragments are spread on their own grid below so
+every molecule stays around even before it may join the main network.
 
 ![Cumulative discoveries over wall time](expected_growth.png)
 
-**The growth curve.** Cumulative compounds / reactions / intramolecular TSs
-against wall time. Everything seeds at `t=0` (the initial 9 compounds and 4
-buffer equilibria), then the exploration loop grows the network in steps as PES
-exploration escapes each compound and the discoveries cascade. Most proposed
-reactions are (correctly) rejected, so discoveries arrive minutes apart — the
-curve is a staircase, not a ramp.
+Cumulative compounds / reactions / intramolecular TSs
+against wall time.
 
 ## Run times on a laptop
 
@@ -145,3 +138,4 @@ The machinery all runs on CPU, but meaningful network growth requires a GPU.
 Note that the published network used $\sim 10^5$ GPU-hours.
 The kinetics demo (`demo/kinetics/`) remains the fully self-contained, pre-verified demo that
 needs none of the worker stack.
+The run above was conducted on 1 GPU node.
