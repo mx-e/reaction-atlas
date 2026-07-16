@@ -119,8 +119,10 @@ def _write_network_plot(compounds, reactions, reactants, products) -> None:
     main_pos = nx.kamada_kawai_layout(main) if len(main) > 1 else {list(main)[0]: np.array([0.0, 0.0])}
     main_pos = nx.spring_layout(main, pos=main_pos, seed=42, iterations=80,
                                 k=1.6 / np.sqrt(max(len(main), 1)))
-    # Park the main cluster in the upper band, spread across the width.
-    pos = _normalize(main_pos, x_lo=-1.6, x_hi=1.6, y_lo=0.5, y_hi=2.1) if len(main) > 1 \
+    # Park the main cluster in the upper band, spread across the width. The box
+    # grows with the cluster so a larger network stays uncrowded.
+    span_x = 2.0 + 0.12 * max(len(main) - 7, 0)
+    pos = _normalize(main_pos, x_lo=-span_x, x_hi=span_x, y_lo=0.5, y_hi=2.7) if len(main) > 1 \
         else {list(main)[0]: np.array([0.0, 1.3])}
 
     # Satellites: every molecule outside the main cluster gets its own cell on a
@@ -152,7 +154,7 @@ def _write_network_plot(compounds, reactions, reactants, products) -> None:
             fallback.append(n)
             continue
         ab = AnnotationBbox(
-            OffsetImage(img, zoom=0.24), pos[n], frameon=True,
+            OffsetImage(img, zoom=0.21), pos[n], frameon=True,
             bboxprops=dict(edgecolor=color, facecolor="white",
                            linewidth=2.0, boxstyle="round,pad=0.1"))
         ab.set_zorder(3)

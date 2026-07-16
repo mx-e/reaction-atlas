@@ -104,29 +104,30 @@ Once a discovery or two has landed, render the network and its growth over time:
 uv run --extra worker python demo/exploration/plot_discoveries.py
 ```
 
-This writes `network.png` and `growth.png` next to the script. Reference images
-from a short single-seed run (glycolaldehyde, CPU-only) look like this:
+This writes `network.png` and `growth.png` next to the script. The reference
+images below are from a longer single-seed run (glycolaldehyde, ~1.5 h on one
+GPU); a few minutes on a laptop yields the same picture with fewer discoveries.
 
-![Reaction network after a short exploration run](expected_network.png)
+![Reaction network grown from a single seed](expected_network.png)
 
 **The network.** Compounds are drawn with RDKit; a **yellow** frame marks a
 **seeded** species and a **blue** frame a **newly discovered** one. Edges are
-reactions. The cluster of seven at the top is the water/carbonate buffer
-(H₂O, H₃O⁺, OH⁻, H₂, CO₂, carbonic acid, bicarbonate) wired together by the four
-buffer equilibria. Below it sits the actual discovery: the exploration found that
-the seed sugar **glycolaldehyde** (`O=CCO`) fragments into **formaldehyde**
-(`C=O`, also a seed) plus a **hydroxycarbene** `[H]/[C-]=[O+]/[H]` — the blue,
-newly discovered compound. Unconnected pieces are spread out on their own row so
-every molecule stays legible even before the network joins up.
+reactions. The seeds are the start sugar glycolaldehyde, formaldehyde, and the
+water/carbonate buffer (H₂O, H₃O⁺, OH⁻, H₂, CO₂, carbonic acid, bicarbonate)
+wired together by the four buffer equilibria. Around them the exploration has
+grown **seven new compounds** (blue) — among them methane and acetic acid off
+CO₂, a hydroxycarbene and a dioxetane off the C1/C2 carbonyls, and assorted
+formyl/oxo species. Disconnected fragments are spread on their own grid below so
+every molecule stays legible even before it joins the main network.
 
 ![Cumulative discoveries over wall time](expected_growth.png)
 
 **The growth curve.** Cumulative compounds / reactions / intramolecular TSs
 against wall time. Everything seeds at `t=0` (the initial 9 compounds and 4
-buffer equilibria), then the exploration loop adds the discovered compound, its
-reaction, and the intramolecular transition states it turns up along the way.
-Most proposed reactions are (correctly) rejected, so on a laptop expect minutes
-between discoveries — the curve is a staircase, not a ramp.
+buffer equilibria), then the exploration loop grows the network in steps as PES
+exploration escapes each compound and the discoveries cascade. Most proposed
+reactions are (correctly) rejected, so discoveries arrive minutes apart — the
+curve is a staircase, not a ramp.
 
 ## Run times on a laptop
 

@@ -20,7 +20,8 @@
 #
 # Tunable via environment (defaults sized to discover on a laptop in minutes):
 #   MAX_VALID_NODES (15)  TS_BATCH_SIZE (4)  PES_MD_STEPS (500)
-#   PES_MAX_ITERATIONS (2)  MAX_DENOISING_STEPS (500)  ENERGY_THRESHOLD_EV (1000)
+#   PES_MAX_ITERATIONS (3)  PES_TEMPERATURE (500)  MAX_DENOISING_STEPS (500)
+#   ENERGY_THRESHOLD_EV (1000)
 
 set -euo pipefail
 
@@ -48,7 +49,10 @@ export ENERGY_MODEL_PATH="${ENERGY_MODEL_PATH:-$REPO_ROOT/packages/worker/models
 export MAX_VALID_NODES="${MAX_VALID_NODES:-15}"
 export TS_BATCH_SIZE="${TS_BATCH_SIZE:-4}"
 export PES_MD_STEPS="${PES_MD_STEPS:-500}"
-export PES_MAX_ITERATIONS="${PES_MAX_ITERATIONS:-2}"
+export PES_MAX_ITERATIONS="${PES_MAX_ITERATIONS:-3}"
+# Slightly elevated MD temperature drives more (and more diverse) reactive
+# escapes, which is what lets the small network actually branch out.
+export PES_TEMPERATURE="${PES_TEMPERATURE:-500}"
 export MAX_DENOISING_STEPS="${MAX_DENOISING_STEPS:-500}"
 # Barrier acceptance cap (eV). Production keeps the physical default
 # (ENERGY_THRESHOLD_HARTREE = 0.1 Ha ≈ 2.72 eV), which rejects essentially every
