@@ -18,6 +18,7 @@ from ase import Atoms
 from loguru import logger
 
 from lib.compound import Compound, get_smiles_from_conformer
+from lib.constants import ENERGY_THRESHOLD_EV
 from lib.db import DB
 from lib.energy import create_energy_fn
 from lib.exploration import ExplorationContext, create_single_mol_context
@@ -107,6 +108,11 @@ def get_config():
         # (this worker exists purely to drain the dedup queue).
         "pes_dedup_only": os.environ.get("PES_DEDUP_ONLY", "").lower() in ("1", "true", "yes"),
         "kinetic_sampling_enabled": os.environ.get("KINETIC_SAMPLING_ENABLED", "true").lower() == "true",
+        # Upper barrier cap (eV) for accepting a discovered reaction. Defaults to
+        # the production value (ENERGY_THRESHOLD_HARTREE = 0.1 Ha ≈ 2.72 eV). The
+        # demo relaxes this so genuinely higher-barrier reactions (which are all
+        # that's reachable from a single tiny seed) still register as discoveries.
+        "energy_threshold_ev": float(os.environ.get("ENERGY_THRESHOLD_EV", ENERGY_THRESHOLD_EV)),
     }
 
 
@@ -478,7 +484,9 @@ def main():
         kinetic_sampling_enabled=config["kinetic_sampling_enabled"],
         oversample_factor=config["oversample_factor"],
         restrict_to_existing_compounds=config["restrict_to_existing_compounds"],
+        energy_threshold=config["energy_threshold_ev"],
     )
+    logger.info(f"Barrier acceptance cap: {config['energy_threshold_ev']:.3f} eV")
 
     explore_config = ExploreConfig(
         md_steps=config["pes_md_steps"],

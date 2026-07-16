@@ -46,22 +46,21 @@ CPU when no CUDA device is present (the same code path, just slower).
 ./demo/exploration/run_demo.sh
 ```
 
-The script initializes the start molecule (formaldehyde by default, which can be overridden with
-`START_XYZ_PATH`), the fragment library, and the four buffer equilibria, then
-runs the discovery loop continuously, sampling
-compounds and proposing transition states. A single small seed reaches the node
-cap slowly, so we recommend to let it run for a few minutes and stop it with Ctrl-C, then
-inspect what was explored.
-All parameters can be changed, for detailed control, see header of `run_demo.sh`.
+The script initializes the start molecule (the C2 sugar glycolaldehyde by
+default, overridable with `START_XYZ_PATH`), the fragment library, and the four
+buffer equilibria, then runs the discovery loop continuously, sampling compounds
+and proposing transition states. Let it run for a few minutes and stop it with
+Ctrl-C, then inspect what was explored. All parameters can be changed; for
+detailed control see the header of `run_demo.sh`.
 
-For a run that discovers structure faster on a laptop, seed the C2 sugar
-glycolaldehyde and give the diffusion proposer more steps:
-
-```bash
-START_XYZ_PATH=$PWD/data/start_xyz/glycolaldehyde.xyz \
-  MAX_DENOISING_STEPS=500 TS_BATCH_SIZE=4 \
-  ./demo/exploration/run_demo.sh
-```
+> **A note on the barrier cap.** At production scale the worker only accepts
+> reactions below a physical barrier cap (`ENERGY_THRESHOLD_HARTREE = 0.1 Ha ≈
+> 2.72 eV`). From a *single tiny seed* almost every reachable reaction sits above
+> that cap, so a laptop-scale run would grow no network at all. The demo
+> therefore **relaxes the cap** (`ENERGY_THRESHOLD_EV=1000`, effectively off) so
+> that genuinely higher-barrier reactions still register as discoveries and you
+> can watch the network grow. Set `ENERGY_THRESHOLD_EV=2.72` to reproduce the
+> production acceptance criterion.
 
 ## Expected output
 
@@ -70,14 +69,15 @@ The worker logs each stage, i.e. model load, seeding, then the exploration loop
 
 ```
 Using device: cpu
-Seeded compound: CH2O (C=O) / H2O (O) / ...
+Seeded compound: OCC=O (glycolaldehyde) / H2O (O) / CH2O (C=O) / ...
 Seeded equilibrium 'water_autoionization': O ⇌ [HH] + [OH-] ...
-Seeding complete, 8 compounds
+Seeding complete, 9 compounds
+Barrier acceptance cap: 1000.000 eV
 Entering main exploration loop
-Batched TS optimization: 2/3 converged to first-order saddle     # PES / P-RFO
-Denoising ...  30it [00:00, 775 it/s]                            # MoreRed proposer
-Invalid forward barrier: ... exceeds threshold ...               # barrier validation
-Round N: exploring 2 contexts ...
+Claimed PES work (explore): compound_id=1 minimum_id=1               # PES / MD escape
+Denoising ...  500it [00:02, 190 it/s]                              # MoreRed proposer
+Valid escaped reaction from O=CCO: barrier_fwd=2.918 eV             # a discovery!
+Round N: exploring 4 contexts ...
 ```
 
 Inspect what was explored (in another terminal, or after Ctrl-C):
@@ -95,6 +95,38 @@ PY
 # ...and solve the kinetics of whatever network was explored:
 uv run --extra db python -m packages.kinetics.run --experiment main
 ```
+
+## Visualize what was explored
+
+Once a discovery or two has landed, render the network and its growth over time:
+
+```bash
+uv run --extra worker python demo/exploration/plot_discoveries.py
+```
+
+This writes `network.png` and `growth.png` next to the script. Reference images
+from a short single-seed run (glycolaldehyde, CPU-only) look like this:
+
+![Reaction network after a short exploration run](expected_network.png)
+
+**The network.** Compounds are drawn with RDKit; a **yellow** frame marks a
+**seeded** species and a **blue** frame a **newly discovered** one. Edges are
+reactions. The cluster of seven at the top is the water/carbonate buffer
+(H₂O, H₃O⁺, OH⁻, H₂, CO₂, carbonic acid, bicarbonate) wired together by the four
+buffer equilibria. Below it sits the actual discovery: the exploration found that
+the seed sugar **glycolaldehyde** (`O=CCO`) fragments into **formaldehyde**
+(`C=O`, also a seed) plus a **hydroxycarbene** `[H]/[C-]=[O+]/[H]` — the blue,
+newly discovered compound. Unconnected pieces are spread out on their own row so
+every molecule stays legible even before the network joins up.
+
+![Cumulative discoveries over wall time](expected_growth.png)
+
+**The growth curve.** Cumulative compounds / reactions / intramolecular TSs
+against wall time. Everything seeds at `t=0` (the initial 9 compounds and 4
+buffer equilibria), then the exploration loop adds the discovered compound, its
+reaction, and the intramolecular transition states it turns up along the way.
+Most proposed reactions are (correctly) rejected, so on a laptop expect minutes
+between discoveries — the curve is a staircase, not a ramp.
 
 ## Run times on a laptop
 

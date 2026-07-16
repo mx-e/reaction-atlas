@@ -69,3 +69,8 @@ data/reference/maygen_carb.json
 # comparison).
 demo/kinetics/concentrations.png
 demo/kinetics/network.png
+demo/exploration/network.png
+demo/exploration/growth.png
+
+# Local SLURM scratch for running the exploration demo (dumps, job logs)
+.slurm_demo/
